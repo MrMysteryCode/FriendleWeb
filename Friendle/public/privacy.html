@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friendle Privacy Policy</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0b1324;
+        --muted: rgba(15, 23, 42, 0.7);
+        --blue: #2f6ad6;
+        --panel: #ffffff;
+        --bg: #f4f7ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Manrope', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      main {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 48px 6vw 64px;
+      }
+      h1 {
+        font-size: 2.4rem;
+        margin-bottom: 8px;
+        color: var(--ink);
+      }
+      .meta {
+        color: var(--muted);
+        margin-bottom: 24px;
+      }
+      section {
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 20px 22px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        margin-bottom: 18px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 1.1rem;
+        color: var(--blue);
+      }
+      p,
+      li {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      a {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Friendle Privacy Policy</h1>
+      <div class="meta">Effective date: January 29, 2026</div>
+
+      <section>
+        <h2>Overview</h2>
+        <p>
+          Friendle is a daily guessing game inspired by Discord server activity.
+          We are committed to privacy-first design. The game only displays
+          anonymized, aggregated insights from the previous day's activity.
+        </p>
+      </section>
+
+      <section>
+        <h2>Data We Use</h2>
+        <ul>
+          <li>Daily aggregates such as message count ranges and activity windows.</li>
+          <li>De-identified snippets such as scrambled quotes and pixelated media.</li>
+          <li>Public Discord metadata like account age ranges.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Data We Do Not Use</h2>
+        <ul>
+          <li>Private messages (DMs) or content from opt-out channels.</li>
+          <li>Roles, sensitive attributes, or personal profile details.</li>
+          <li>Exact message timestamps or raw message history.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How Data Is Processed</h2>
+        <p>
+          Data is collected by a Discord bot and transformed into daily puzzle
+          clues. The bot caches the daily result to avoid re-scanning messages
+          and to ensure each day has a single shared puzzle.
+        </p>
+      </section>
+
+      <section>
+        <h2>Retention</h2>
+        <p>
+          Daily game data is stored only as long as needed to serve the current
+          day's puzzle. Historical data is not retained in a way that allows
+          reconstruction of past messages.
+        </p>
+      </section>
+
+      <section>
+        <h2>Sharing</h2>
+        <p>
+          We do not sell or share user data with third parties. The only output
+          shown to players is anonymized and aggregated puzzle data.
+        </p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>
+          If you have questions about this policy or wish to opt out of data
+          usage in your server, contact your server admin or the Friendle team.
+        </p>
+      </section>
+
+      <a href="./">Back to Friendle</a>
+    </main>
+  </body>
+</html>
