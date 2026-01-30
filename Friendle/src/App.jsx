@@ -8,49 +8,9 @@ import StatleGame from './components/StatleGame'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
 
-function HomeView({ games, puzzleBundle, puzzleLoading, puzzleError }) {
+function HomeView({ games }) {
   return (
     <>
-      <section className="game-list" style={{ marginTop: 20 }}>
-        <article className="game-card">
-          <div className="game-copy">
-            <h3>Daily Puzzles (Live)</h3>
-
-            {puzzleLoading && <p>Loading puzzles...</p>}
-            {puzzleError && <p className="puzzle-error">{puzzleError}</p>}
-
-            {!puzzleLoading && !puzzleError && puzzleBundle && (
-              <>
-                <p>
-                  <strong>Date:</strong> {puzzleBundle.date}
-                </p>
-
-                <details style={{ marginTop: 10 }}>
-                  <summary>Friendle payload</summary>
-                  <pre style={{ whiteSpace: 'pre-wrap' }}>
-                    {JSON.stringify(puzzleBundle.puzzles.friendle_daily, null, 2)}
-                  </pre>
-                </details>
-
-                <details style={{ marginTop: 10 }}>
-                  <summary>Quotele payload</summary>
-                  <pre style={{ whiteSpace: 'pre-wrap' }}>
-                    {JSON.stringify(puzzleBundle.puzzles.quotele, null, 2)}
-                  </pre>
-                </details>
-
-                <details style={{ marginTop: 10 }}>
-                  <summary>Statle payload</summary>
-                  <pre style={{ whiteSpace: 'pre-wrap' }}>
-                    {JSON.stringify(puzzleBundle.puzzles.statle, null, 2)}
-                  </pre>
-                </details>
-              </>
-            )}
-          </div>
-        </article>
-      </section>
-
       <main className="game-list">
         {games.map((game) => (
           <Link className="game-card game-card-link" to={game.path} key={game.key}>
@@ -596,6 +556,11 @@ function App() {
   const medialeGame = games.find((game) => game.key === 'mediale')
   const statleGame = games.find((game) => game.key === 'statle')
   const autoAdvance = true
+  const todayLabel = new Date().toLocaleDateString(currentLanguage.htmlLang, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 
   return (
     <div className="page">
@@ -612,7 +577,9 @@ function App() {
                 settings
               </span>
             </button>
-            <h1>Friendle</h1>
+            <Link className="title-link" to="/">
+              <h1>Friendle</h1>
+            </Link>
             <button
               className="flag-link"
               type="button"
@@ -625,6 +592,7 @@ function App() {
                 alt={`${currentLanguage.flagName} flag`}
               />
             </button>
+            <span className="date-badge">{todayLabel}</span>
           </div>
           <p className="hero-subtitle">
             {copy.subtitle.before}
@@ -640,9 +608,6 @@ function App() {
           element={
             <HomeView
               games={games}
-              puzzleBundle={puzzleBundle}
-              puzzleLoading={puzzleLoading}
-              puzzleError={puzzleError}
             />
           }
         />
@@ -701,12 +666,6 @@ function App() {
               {!puzzleLoading && !puzzleError && (
                 <>
                   <MedialeCanvas puzzle={puzzleBundle?.puzzles?.mediale} gameKey="mediale" />
-                  {puzzleBundle?.puzzles?.mediale && (
-                    <details className="puzzle-details">
-                      <summary>Mediale payload</summary>
-                      <pre>{JSON.stringify(puzzleBundle.puzzles.mediale, null, 2)}</pre>
-                    </details>
-                  )}
                 </>
               )}
             </GameShell>

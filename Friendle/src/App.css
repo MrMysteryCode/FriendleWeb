@@ -92,6 +92,21 @@ body {
   justify-content: center;
 }
 
+.title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.date-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--mist);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
 .settings-link {
   display: inline-flex;
   align-items: center;
@@ -250,6 +265,11 @@ body {
   display: grid;
   gap: 16px;
   color: #ffffff;
+}
+
+.game-route .game-card {
+  width: 100%;
+  grid-template-columns: 1fr;
 }
 
 .game-panel {
@@ -428,12 +448,16 @@ body {
 }
 
 .game-route-actions {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .ghost-button {
-  width: 100%;
+  flex: 1;
+  min-width: 160px;
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -445,6 +469,11 @@ body {
 
 .ghost-button:hover {
   border-color: rgba(255, 255, 255, 0.4);
+}
+
+.game-route-actions .modal-action,
+.game-route-actions .ghost-button {
+  max-width: 320px;
 }
 
 .game-placeholder {
@@ -606,6 +635,19 @@ body {
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .game-route-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .game-route-actions .modal-action,
+  .game-route-actions .ghost-button {
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .select-label {
