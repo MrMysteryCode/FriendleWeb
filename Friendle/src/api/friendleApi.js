@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || "YOUR_WORKER_URL";
+const API_BASE =
+  import.meta.env.VITE_API_URL || "https://friendle-api.officialmrmysteryman.workers.dev";
 
 export async function fetchLatestPuzzles(guildId) {
   if (!guildId) {
@@ -11,9 +12,7 @@ export async function fetchLatestPuzzles(guildId) {
   let json = null;
   try {
     json = await res.json();
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   if (!res.ok) {
     throw new Error(json?.error || `API error ${res.status}`);

@@ -103,7 +103,7 @@ function App() {
           quotele: {
             title: 'Quotele',
             description:
-              'Identify who sent the scrambled quote, with usernames and emojis removed.',
+              'Guess the original quote and who sent it, based on a scrambled version.',
           },
           mediale: {
             title: 'Mediale',
@@ -160,7 +160,11 @@ function App() {
     languageOptions.find((option) => option.code === language) || languageOptions[0]
   const copy = currentLanguage.strings
   const guildId = useGuildQuery()
-  const playLink = guildId ? `/play?guild=${encodeURIComponent(guildId)}` : '/play'
+  const playLink = (gameKey) => {
+    const base = `/play?game=${encodeURIComponent(gameKey)}`
+    if (!guildId) return base
+    return `${base}&guild=${encodeURIComponent(guildId)}`
+  }
 
   useEffect(() => {
     document.title = 'Friendle'
@@ -192,21 +196,25 @@ function App() {
 
   const games = [
     {
+      key: 'classic',
       title: copy.games.classic.title,
       icon: 'person',
       description: copy.games.classic.description,
     },
     {
+      key: 'quotele',
       title: copy.games.quotele.title,
       icon: 'chat',
       description: copy.games.quotele.description,
     },
     {
+      key: 'mediale',
       title: copy.games.mediale.title,
       icon: 'image',
       description: copy.games.mediale.description,
     },
     {
+      key: 'statle',
       title: copy.games.statle.title,
       icon: 'finance',
       description: copy.games.statle.description,
@@ -247,15 +255,12 @@ function App() {
             <span className="subtitle-highlight">{copy.subtitle.highlight}</span>
             {copy.subtitle.after}
           </p>
-          <Link className="play-button" to={playLink}>
-            Play now
-          </Link>
         </div>
       </header>
 
       <main className="game-list">
         {games.map((game) => (
-          <article className="game-card" key={game.title}>
+          <Link className="game-card game-card-link" to={playLink(game.key)} key={game.key}>
             <div className="icon">
               <span
                 className="game-icon-symbol material-symbols-outlined"
@@ -270,7 +275,7 @@ function App() {
               </div>
               <p>{game.description}</p>
             </div>
-          </article>
+          </Link>
         ))}
       </main>
 

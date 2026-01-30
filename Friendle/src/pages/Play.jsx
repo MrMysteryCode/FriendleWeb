@@ -4,7 +4,7 @@ import { fetchLatestPuzzles } from '../api/friendleApi'
 import MedialeCanvas from '../components/MedialeCanvas'
 
 const MAX_GUESSES = 6
-const ACCOUNT_AGE_ORDER = ['Less than 1 year', '1?2 years', '2?4 years', '4+ years']
+const ACCOUNT_AGE_ORDER = ['Less than 1 year', '1-2 years', '2-4 years', '4+ years']
 
 function storageKey(guildId, date, game) {
   return `friendle:${guildId}:${date}:${game}`
@@ -240,10 +240,11 @@ function GuessHistory({ guesses }) {
 export default function Play() {
   const [params] = useSearchParams()
   const guildId = params.get('guild') || ''
+  const initialGame = params.get('game') || 'classic'
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState('classic')
+  const [activeTab, setActiveTab] = useState(initialGame)
 
   useEffect(() => {
     if (!guildId) return
@@ -266,6 +267,10 @@ export default function Play() {
     }
   }, [guildId])
 
+  useEffect(() => {
+    setActiveTab(initialGame)
+  }, [initialGame])
+
   const puzzles = data?.puzzles || {}
   const names = data?.names || {}
   const metrics = data?.metrics || {}
@@ -282,15 +287,23 @@ export default function Play() {
     return names?.[userId] || 'Unknown member'
   }
 
+
+  const advanceToNext = (gameKey) => {
+    const order = ['classic', 'quotele', 'mediale', 'statle']
+    const idx = order.indexOf(gameKey)
+    if (idx === -1 || idx >= order.length - 1) return
+    setActiveTab(order[idx + 1])
+  }
+
   if (!guildId) {
     return (
       <div className="page play-page">
         <Link className="play-back" to="/">
-          ? Back to home
+          <- Back to home
         </Link>
         <div className="play-empty">
           <h2>Ready to play Friendle?</h2>
-          <p>Open <strong>/play?guild=SERVER_ID</strong> to start today?s puzzles.</p>
+          <p>Open <strong>/play?guild=SERVER_ID</strong> to start today's puzzles.</p>
         </div>
       </div>
     )
@@ -299,30 +312,13 @@ export default function Play() {
   return (
     <div className="page play-page">
       <Link className="play-back" to={`/?guild=${encodeURIComponent(guildId)}`}>
-        ? Back to home
+        <- Back to home
       </Link>
 
       <header className="play-header">
         <div>
           <h2>Daily puzzles</h2>
           <p>{dateLabel ? `Date: ${dateLabel}` : 'Loading date...'}</p>
-        </div>
-        <div className="play-tabs">
-          {[
-            { key: 'classic', label: 'Classic' },
-            { key: 'quotele', label: 'Quotele' },
-            { key: 'mediale', label: 'Mediale' },
-            { key: 'statle', label: 'Statle' },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              className={`tab-button ${activeTab === tab.key ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
       </header>
 
@@ -340,6 +336,7 @@ export default function Play() {
               date={dateLabel}
               resolveUserId={resolveUserId}
               resolveDisplayName={resolveDisplayName}
+              onComplete={() => advanceToNext('classic')}
             />
           )}
           {activeTab === 'quotele' && (
@@ -350,6 +347,7 @@ export default function Play() {
               date={dateLabel}
               resolveUserId={resolveUserId}
               resolveDisplayName={resolveDisplayName}
+              onComplete={() => advanceToNext('quotele')}
             />
           )}
           {activeTab === 'mediale' && (
@@ -360,6 +358,7 @@ export default function Play() {
               date={dateLabel}
               resolveUserId={resolveUserId}
               resolveDisplayName={resolveDisplayName}
+              onComplete={() => advanceToNext('mediale')}
             />
           )}
           {activeTab === 'statle' && (
@@ -370,6 +369,7 @@ export default function Play() {
               date={dateLabel}
               resolveUserId={resolveUserId}
               resolveDisplayName={resolveDisplayName}
+              onComplete={() => advanceToNext('statle')}
             />
           )}
         </div>
@@ -386,6 +386,7 @@ function ClassicGame({
   date,
   resolveUserId,
   resolveDisplayName,
+  onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
@@ -427,12 +428,14 @@ function ClassicGame({
     if (userId && userId === solutionId) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
+      if (onComplete) onComplete()
       return
     }
 
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
+      if (onComplete) onComplete()
       return
     }
 
@@ -531,6 +534,7 @@ function QuoteleGame({
   date,
   resolveUserId,
   resolveDisplayName,
+  onComplete,
 }) {
   const [quoteInput, setQuoteInput] = useState('')
   const [usernameInput, setUsernameInput] = useState('')
@@ -563,7 +567,7 @@ function QuoteleGame({
     const quoteCorrect = quoteHash === puzzle?.quote_hash
 
     addGuess({
-      label: `${usernameInput.trim()} ? ${quoteCorrect ? 'quote ?' : 'quote ?'} / ${userCorrect ? 'user ?' : 'user ?'}`,
+      label: `${usernameInput.trim()} - ${quoteCorrect ? 'quote ok' : 'quote no'} / ${userCorrect ? 'user ok' : 'user no'}`,
       userCorrect,
       quoteCorrect,
     })
@@ -574,12 +578,14 @@ function QuoteleGame({
     if (userCorrect && quoteCorrect) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} sent the quote.`)
+      if (onComplete) onComplete()
       return
     }
 
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
+      if (onComplete) onComplete()
       return
     }
 
@@ -635,6 +641,7 @@ function StatleGame({
   date,
   resolveUserId,
   resolveDisplayName,
+  onComplete,
 }) {
   const [usernameInput, setUsernameInput] = useState('')
   const [message, setMessage] = useState('')
@@ -665,12 +672,14 @@ function StatleGame({
     if (userId && userId === solutionId) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
+      if (onComplete) onComplete()
       return
     }
 
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
+      if (onComplete) onComplete()
       return
     }
 
@@ -720,6 +729,7 @@ function MedialeGame({
   date,
   resolveUserId,
   resolveDisplayName,
+  onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
@@ -762,18 +772,20 @@ function MedialeGame({
     const userId = resolveUserId(username)
     const correctUser = userId && userId === solutionId
 
-    addGuess({ label: `${username} ? ${keyword}`, correctUser, keywordOk })
+    addGuess({ label: `${username} - ${keyword}`, correctUser, keywordOk })
     setGuessInput('')
 
     if (correctUser) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} posted the media.`)
+      if (onComplete) onComplete()
       return
     }
 
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
+      if (onComplete) onComplete()
       return
     }
 
