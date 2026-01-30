@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 const MAX_GUESSES = 6;
+const MIN_PARTIAL_MATCH = 3;
 
 const STOP_WORDS = new Set([
   "a",
@@ -360,19 +361,32 @@ export default function GuessTableGame({
 
     const normalizedGuess = normalizeName(trimmed);
     const solutionId = puzzle?.solution_user_id ? String(puzzle.solution_user_id) : "";
+    const normalizedSolutionId = solutionId ? normalizeName(solutionId) : "";
+    const normalizedAnswer = answerName ? normalizeName(answerName) : "";
     const guessId = userIndex.get(normalizedGuess);
+    const hasAlphaGuess = /[a-z]/.test(normalizedGuess);
+    const hasAlphaAnswer = /[a-z]/.test(normalizedAnswer);
+    const nameExact = normalizedAnswer && normalizedGuess === normalizedAnswer;
+    const namePartial =
+      normalizedAnswer &&
+      hasAlphaGuess &&
+      hasAlphaAnswer &&
+      normalizedGuess.length >= MIN_PARTIAL_MATCH &&
+      (normalizedAnswer.includes(normalizedGuess) ||
+        normalizedGuess.includes(normalizedAnswer));
+    const idMatch =
+      normalizedSolutionId &&
+      (normalizedGuess === normalizedSolutionId || (solutionId && guessId === solutionId));
 
-    if (
-      (answerName && normalizedGuess === normalizeName(answerName)) ||
-      (solutionId && normalizedGuess === normalizeName(solutionId)) ||
-      (solutionId && guessId === solutionId)
-    ) {
-      completeGame(`Correct! Answer: ${answerName || trimmed}`);
+    const answerLabel = answerName || solutionId || trimmed;
+
+    if (nameExact || namePartial || idMatch) {
+      completeGame(`Correct! Answer: ${answerLabel}`);
       return;
     }
 
     if (guessRows.length + 1 >= MAX_GUESSES) {
-      completeGame(`Out of guesses. Answer: ${answerName || "Unknown"}`);
+      completeGame(`Out of guesses. Answer: ${answerName || solutionId || "Unknown"}`);
       return;
     }
 
@@ -410,7 +424,7 @@ export default function GuessTableGame({
           className="game-input"
           value={guess}
           onChange={(event) => setGuess(event.target.value)}
-          placeholder="Type a username"
+          placeholder="Type a username or ID"
           disabled={isComplete}
         />
         <button className="game-submit" type="button" onClick={handleGuess}>
@@ -450,8 +464,10 @@ export default function GuessTableGame({
         ))}
       </div>
 
-      {isComplete && answerName && (
-        <p className="game-status">Answer: {answerName}</p>
+      {isComplete && (answerName || puzzle?.solution_user_id) && (
+        <p className="game-status">
+          Answer: {answerName || puzzle?.solution_user_id}
+        </p>
       )}
 
       {!isComplete && !answerName && (

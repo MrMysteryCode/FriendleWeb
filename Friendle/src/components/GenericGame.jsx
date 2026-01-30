@@ -91,14 +91,18 @@ export default function GenericGame({ puzzle, gameKey, title, prompt }) {
     setGuess("");
 
     if (hasAnswers) {
-      const isCorrect = answers.some((answer) => value.includes(answer));
+      const isCorrect = answers.some(
+        (answer) => value.includes(answer) || answer.includes(value)
+      );
       if (isCorrect) {
         completeGame("Correct! Moving to the next game.");
         return;
       }
 
       if (nextCount >= MAX_GUESSES) {
-        completeGame("Out of guesses. Moving to the next game.");
+        completeGame(
+          `Out of guesses. Answer: ${answers[0] || "Unknown"}. Moving to the next game.`
+        );
         return;
       }
 
@@ -162,6 +166,10 @@ export default function GenericGame({ puzzle, gameKey, title, prompt }) {
             ))}
           </div>
         </div>
+      )}
+
+      {isComplete && hasAnswers && (
+        <p className="game-status">Answer: {answers[0]}</p>
       )}
 
       <details className="puzzle-details">

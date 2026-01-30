@@ -30,6 +30,13 @@ function drawPixelated(ctx, img, pixelSize, reveal) {
 export default function MedialeCanvas({ url, pixelSize, reveal }) {
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
+  const pixelRef = useRef(pixelSize)
+  const revealRef = useRef(reveal)
+
+  useEffect(() => {
+    pixelRef.current = pixelSize
+    revealRef.current = reveal
+  }, [pixelSize, reveal])
 
   useEffect(() => {
     if (!url) return
@@ -42,7 +49,7 @@ export default function MedialeCanvas({ url, pixelSize, reveal }) {
       imgRef.current = img
       const ctx = canvasRef.current?.getContext('2d')
       if (!ctx) return
-      drawPixelated(ctx, img, pixelSize, reveal)
+      drawPixelated(ctx, img, pixelRef.current, revealRef.current)
     }
   }, [url])
 

@@ -35,7 +35,7 @@ function App() {
           classic: {
             title: 'Classic',
             description:
-              'Guess which server member matches the shown activity profile from yesterday.',
+              'Guess which server member matches the shown activity profile from yesterday (or the most recent day with activity).',
           },
           quotele: {
             title: 'Quotele',
@@ -56,7 +56,7 @@ function App() {
         how: {
           title: 'How Friendle Works',
           body:
-            "Five daily mini-games powered by anonymized Discord activity from yesterday only. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
+            "Five daily mini-games powered by anonymized Discord activity from yesterday when available, or the most recent day with activity. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
           bullets: [
             '6 guesses max per game.',
             'Resets at a fixed server time.',
@@ -103,7 +103,7 @@ function App() {
           classic: {
             title: 'Classic',
             description:
-              'Guess which server member matches the shown activity profile from yesterday.',
+              'Guess which server member matches the shown activity profile from yesterday (or the most recent day with activity).',
           },
           quotele: {
             title: 'Quotele',
@@ -124,7 +124,7 @@ function App() {
         how: {
           title: 'How Friendle Works',
           body:
-            "Five daily mini-games powered by anonymized Discord activity from yesterday only. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
+            "Five daily mini-games powered by anonymized Discord activity from yesterday when available, or the most recent day with activity. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
           bullets: [
             '6 guesses max per game.',
             'Resets at a fixed server time.',

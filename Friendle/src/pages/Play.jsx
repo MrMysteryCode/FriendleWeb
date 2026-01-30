@@ -5,6 +5,7 @@ import MedialeCanvas from '../components/MedialeCanvas'
 
 const MAX_GUESSES = 6
 const ACCOUNT_AGE_ORDER = ['Less than 1 year', '1-2 years', '2-4 years', '4+ years']
+const MIN_PARTIAL_MATCH = 3
 
 function storageKey(guildId, date, game) {
   return `friendle:${guildId}:${date}:${game}`
@@ -62,6 +63,13 @@ function normalizeName(value) {
     .toLowerCase()
 }
 
+function normalizeUserToken(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
 function normalizeGameKey(value) {
   const key = normalizeName(value)
   if (!key) return 'classic'
@@ -80,6 +88,36 @@ function normalizeQuote(value) {
     .trim()
 }
 
+function parseDateLabel(value) {
+  const match = String(value || '').match(/(\d{4})[-/](\d{2})[-/](\d{2})/)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2]) - 1
+  const day = Number(match[3])
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null
+  return new Date(year, month, day)
+}
+
+function isSameDate(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
+function getPuzzleDateNote(label) {
+  const parsed = parseDateLabel(label)
+  if (!parsed) return ''
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const puzzleDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  if (isSameDate(puzzleDate, today) || isSameDate(puzzleDate, yesterday)) return ''
+  return `No activity in the last two days. Using the most recent messages from ${label}.`
+}
+
 async function sha256Hex(text) {
   const data = new TextEncoder().encode(text)
   const hash = await crypto.subtle.digest('SHA-256', data)
@@ -90,19 +128,48 @@ async function sha256Hex(text) {
 function buildNameLookup(names = {}) {
   const map = new Map()
   Object.entries(names).forEach(([userId, displayName]) => {
-    if (!displayName) return
-    map.set(normalizeName(displayName), userId)
+    const normalizedId = normalizeUserToken(userId)
+    if (displayName) {
+      const normalizedName = normalizeUserToken(displayName)
+      if (normalizedName) {
+        map.set(normalizedName, String(userId))
+      }
+    }
+    if (normalizedId) {
+      map.set(normalizedId, String(userId))
+    }
   })
   return map
 }
 
 function buildAllowedUsernames(allowed = [], names = {}) {
   const list = Array.isArray(allowed) && allowed.length ? allowed : Object.values(names)
-  return new Set(
-    list
-      .map((name) => normalizeName(name))
-      .filter(Boolean)
-  )
+  const allowedSet = new Set()
+  const nameToId = new Map()
+  Object.entries(names).forEach(([userId, displayName]) => {
+    const normalizedName = normalizeUserToken(displayName)
+    if (normalizedName) {
+      nameToId.set(normalizedName, String(userId))
+    }
+  })
+  list.forEach((name) => {
+    const normalizedName = normalizeUserToken(name)
+    if (!normalizedName) return
+    allowedSet.add(normalizedName)
+    const id = nameToId.get(normalizedName)
+    if (id) {
+      allowedSet.add(normalizeUserToken(id))
+    }
+  })
+  if (!Array.isArray(allowed) || allowed.length === 0) {
+    Object.keys(names).forEach((userId) => {
+      const normalizedId = normalizeUserToken(userId)
+      if (normalizedId) {
+        allowedSet.add(normalizedId)
+      }
+    })
+  }
+  return allowedSet
 }
 
 function formatStatLabel(key) {
@@ -195,6 +262,102 @@ function normalizeAccountAge(value) {
     .trim()
 }
 
+function buildNameIndex(names = {}) {
+  return Object.entries(names)
+    .map(([userId, displayName]) => ({
+      id: String(userId),
+      name: displayName || '',
+      normalized: normalizeUserToken(displayName),
+    }))
+    .filter((entry) => entry.normalized)
+}
+
+function findBestUserMatch(normalizedGuess, nameIndex) {
+  if (!normalizedGuess || normalizedGuess.length < MIN_PARTIAL_MATCH) return null
+  const matches = nameIndex.filter(
+    (entry) =>
+      entry.normalized.includes(normalizedGuess) ||
+      normalizedGuess.includes(entry.normalized)
+  )
+  if (!matches.length) return null
+  matches.sort((a, b) => {
+    const diff =
+      Math.abs(a.normalized.length - normalizedGuess.length) -
+      Math.abs(b.normalized.length - normalizedGuess.length)
+    if (diff !== 0) return diff
+    return a.normalized.localeCompare(b.normalized)
+  })
+  return matches[0]
+}
+
+function resolveUserGuess(rawInput, nameLookup, nameIndex, names) {
+  const raw = String(rawInput || '').trim()
+  const normalizedGuess = normalizeUserToken(raw)
+  if (!normalizedGuess) {
+    return { raw, normalizedGuess: '', userId: '', displayName: raw, matchType: 'none' }
+  }
+
+  const directId = nameLookup.get(normalizedGuess)
+  if (directId) {
+    return {
+      raw,
+      normalizedGuess,
+      userId: directId,
+      displayName: names?.[directId] || raw,
+      matchType: 'exact',
+    }
+  }
+
+  const partial = findBestUserMatch(normalizedGuess, nameIndex)
+  if (partial) {
+    return {
+      raw,
+      normalizedGuess,
+      userId: partial.id,
+      displayName: partial.name || raw,
+      matchType: 'partial',
+    }
+  }
+
+  return { raw, normalizedGuess, userId: '', displayName: raw, matchType: 'none' }
+}
+
+function isGuessAllowed(guessInfo, allowedSet) {
+  if (!allowedSet || allowedSet.size === 0) return true
+  if (!guessInfo?.normalizedGuess) return false
+  if (allowedSet.has(guessInfo.normalizedGuess)) return true
+  if (guessInfo.userId && allowedSet.has(normalizeUserToken(guessInfo.userId))) return true
+  const normalizedName = normalizeUserToken(guessInfo.displayName)
+  if (normalizedName && allowedSet.has(normalizedName)) return true
+  return false
+}
+
+function isUserGuessMatch(guessInfo, solutionId, solutionName) {
+  if (!guessInfo?.normalizedGuess) return false
+  const guessToken = guessInfo.normalizedGuess
+  const solutionToken = normalizeUserToken(solutionName)
+  const normalizedSolutionId = solutionId ? normalizeUserToken(solutionId) : ''
+
+  if (normalizedSolutionId && guessToken === normalizedSolutionId) return true
+  if (solutionId && guessInfo.userId && String(guessInfo.userId) === String(solutionId)) {
+    return true
+  }
+
+  if (!solutionToken) return false
+  if (guessToken === solutionToken) return true
+
+  const allowPartial = /[a-z]/.test(guessToken) && /[a-z]/.test(solutionToken)
+  if (
+    allowPartial &&
+    guessToken.length >= MIN_PARTIAL_MATCH &&
+    (solutionToken.includes(guessToken) || guessToken.includes(solutionToken))
+  ) {
+    return true
+  }
+
+  return false
+}
+
 function extractKeywordsFromUrl(url) {
   if (!url) return []
   const match = url.match(/\/view\/([^/]+?)-gif-/i)
@@ -207,59 +370,20 @@ function extractKeywordsFromUrl(url) {
     .filter((token) => !['gif', 'view', 'tenor'].includes(token))
 }
 
-function parseMedialeGuess(input, allowedNames) {
+function parseMedialeGuess(input) {
   const raw = input.trim()
   if (!raw) return { username: '', keyword: '' }
-
-  if (!allowedNames || allowedNames.size === 0) {
-    if (raw.includes('|')) {
-      const [userPart, keywordPart] = raw.split('|')
-      return {
-        username: userPart.trim().toLowerCase(),
-        keyword: (keywordPart || '').trim().toLowerCase(),
-      }
-    }
-    return { username: raw.toLowerCase(), keyword: '' }
-  }
 
   if (raw.includes('|')) {
     const [userPart, keywordPart] = raw.split('|')
     return {
-      username: userPart.trim().toLowerCase(),
-      keyword: (keywordPart || '').trim().toLowerCase(),
+      username: userPart.trim(),
+      keyword: (keywordPart || '').trim(),
     }
   }
 
-  const lowered = raw.toLowerCase()
-  const sortedNames = [...allowedNames].sort((a, b) => b.length - a.length)
-  let matched = ''
-
-  for (const name of sortedNames) {
-    if (lowered.startsWith(name)) {
-      matched = name
-      break
-    }
-  }
-
-  if (!matched) {
-    for (const name of sortedNames) {
-      const pattern = new RegExp(
-        `\\b${name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`,
-        'i'
-      )
-      if (pattern.test(lowered)) {
-        matched = name
-        break
-      }
-    }
-  }
-
-  if (!matched) {
-    return { username: '', keyword: lowered }
-  }
-
-  const keyword = lowered.replace(matched, '').trim()
-  return { username: matched, keyword }
+  const [first, ...rest] = raw.split(/\s+/)
+  return { username: first, keyword: rest.join(' ') }
 }
 
 function GuessHistory({ guesses }) {
@@ -324,22 +448,22 @@ export default function Play() {
   }, [data?.puzzles])
   const names = data?.names || data?.metadata?.names || {}
   const metrics = data?.metrics || data?.metadata?.metrics || {}
+  const nameIndex = useMemo(() => buildNameIndex(names), [names])
   const allowedUsernames = useMemo(
     () => buildAllowedUsernames(data?.allowed_usernames, names),
     [data?.allowed_usernames, names]
   )
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
   const dateLabel = data?.date || data?.metadata?.date || ''
+  const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
   const classicPuzzle = puzzles.friendle_daily || puzzles.classic || puzzles.friendle || null
 
-  const resolveUserId = (displayName) => {
-    const key = normalizeName(displayName)
-    return nameLookup.get(key) || ''
-  }
+  const resolveGuess = (displayName) =>
+    resolveUserGuess(displayName, nameLookup, nameIndex, names)
 
   const resolveDisplayName = (userId) => {
     if (!userId) return ''
-    return names?.[userId] || 'Unknown member'
+    return names?.[userId] || String(userId) || 'Unknown member'
   }
 
 
@@ -374,6 +498,7 @@ export default function Play() {
         <div>
           <h2>Daily puzzles</h2>
           <p>{dateLabel ? `Date: ${dateLabel}` : 'Loading date...'}</p>
+          {dateNote && <p className="game-status">{dateNote}</p>}
         </div>
       </header>
 
@@ -389,7 +514,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
-              resolveUserId={resolveUserId}
+              resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               onComplete={() => advanceToNext('classic')}
             />
@@ -400,7 +525,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
-              resolveUserId={resolveUserId}
+              resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               onComplete={() => advanceToNext('quotele')}
             />
@@ -411,7 +536,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
-              resolveUserId={resolveUserId}
+              resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               onComplete={() => advanceToNext('mediale')}
             />
@@ -422,7 +547,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
-              resolveUserId={resolveUserId}
+              resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               onComplete={() => advanceToNext('statle')}
             />
@@ -439,7 +564,7 @@ function ClassicGame({
   allowedUsernames,
   guildId,
   date,
-  resolveUserId,
+  resolveGuess,
   resolveDisplayName,
   onComplete,
 }) {
@@ -463,18 +588,21 @@ function ClassicGame({
 
   const handleSubmit = () => {
     if (isComplete) return
-    const normalized = normalizeName(guessInput)
-    if (!normalized) return
+    const guessInfo = resolveGuess(guessInput)
+    if (!guessInfo.normalizedGuess) return
 
-    if (allowValidation && !allowedSet.has(normalized)) {
+    if (allowValidation && !isGuessAllowed(guessInfo, allowedSet)) {
       setMessage('Not a valid member name for today.')
       return
     }
 
-    const userId = resolveUserId(normalized)
+    const userId = guessInfo.userId
     const guessedMetrics = metrics?.[userId] || { activeWindow: 'Not active' }
+    const displayName = userId
+      ? resolveDisplayName(userId)
+      : guessInfo.displayName || guessInput.trim()
     const row = {
-      name: resolveDisplayName(userId) || guessInput.trim(),
+      name: displayName,
       userId,
       metrics: guessedMetrics,
     }
@@ -482,10 +610,7 @@ function ClassicGame({
     addGuess(row)
     setGuessInput('')
 
-    const nameMatch =
-      puzzle?.solution_user_name &&
-      normalizeName(puzzle.solution_user_name) === normalized
-    if ((userId && userId === solutionId) || nameMatch) {
+    if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
       if (onComplete) onComplete()
@@ -532,7 +657,7 @@ function ClassicGame({
         <input
           value={guessInput}
           onChange={(event) => setGuessInput(event.target.value)}
-          placeholder="Type a username"
+          placeholder="Type a username or ID"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -592,7 +717,7 @@ function QuoteleGame({
   allowedUsernames,
   guildId,
   date,
-  resolveUserId,
+  resolveGuess,
   resolveDisplayName,
   onComplete,
 }) {
@@ -612,21 +737,23 @@ function QuoteleGame({
 
   const handleSubmit = async () => {
     if (isComplete) return
-    const username = normalizeName(usernameInput)
-    if (!username || !quoteInput.trim()) return
+    const guessInfo = resolveGuess(usernameInput)
+    if (!guessInfo.normalizedGuess || !quoteInput.trim()) return
 
-    if (allowValidation && !allowedUsernames.has(username)) {
+    if (allowValidation && !isGuessAllowed(guessInfo, allowedUsernames)) {
       setMessage('Not a valid member name for today.')
       return
     }
 
-    const userId = resolveUserId(username)
+    const userId = guessInfo.userId
     const quoteNormalized = normalizeQuote(quoteInput)
     const quoteHash = await sha256Hex(quoteNormalized)
 
-    const nameMatch =
-      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
-    const userCorrect = (userId && userId === solutionId) || nameMatch
+    const userCorrect = isUserGuessMatch(
+      guessInfo,
+      solutionId,
+      puzzle?.solution_user_name
+    )
     const quoteCorrect = quoteHash === puzzle?.quote_hash
 
     addGuess({
@@ -681,7 +808,7 @@ function QuoteleGame({
         <input
           value={usernameInput}
           onChange={(event) => setUsernameInput(event.target.value)}
-          placeholder="Who sent it?"
+          placeholder="Who sent it? (username or ID)"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -702,7 +829,7 @@ function StatleGame({
   allowedUsernames,
   guildId,
   date,
-  resolveUserId,
+  resolveGuess,
   resolveDisplayName,
   onComplete,
 }) {
@@ -721,21 +848,19 @@ function StatleGame({
 
   const handleSubmit = () => {
     if (isComplete) return
-    const username = normalizeName(usernameInput)
-    if (!username) return
+    const guessInfo = resolveGuess(usernameInput)
+    if (!guessInfo.normalizedGuess) return
 
-    if (allowValidation && !allowedUsernames.has(username)) {
+    if (allowValidation && !isGuessAllowed(guessInfo, allowedUsernames)) {
       setMessage('Not a valid member name for today.')
       return
     }
 
-    const userId = resolveUserId(username)
-    addGuess({ label: usernameInput.trim(), userId })
+    const userId = guessInfo.userId
+    addGuess({ label: guessInfo.displayName || usernameInput.trim(), userId })
     setUsernameInput('')
 
-    const nameMatch =
-      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
-    if ((userId && userId === solutionId) || nameMatch) {
+    if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
       if (onComplete) onComplete()
@@ -772,7 +897,7 @@ function StatleGame({
         <input
           value={usernameInput}
           onChange={(event) => setUsernameInput(event.target.value)}
-          placeholder="Guess the member"
+          placeholder="Guess the member (username or ID)"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -793,7 +918,7 @@ function MedialeGame({
   allowedUsernames,
   guildId,
   date,
-  resolveUserId,
+  resolveGuess,
   resolveDisplayName,
   onComplete,
 }) {
@@ -825,29 +950,37 @@ function MedialeGame({
 
   const handleSubmit = () => {
     if (isComplete) return
-    const parsed = parseMedialeGuess(guessInput, allowedUsernames)
+    const parsed = parseMedialeGuess(guessInput)
     const username = parsed.username
     const keyword = parsed.keyword
+    const guessInfo = resolveGuess(username)
 
-    if (!username || (allowValidation && !allowedUsernames.has(username))) {
+    if (!guessInfo.normalizedGuess) {
       setMessage('Not a valid member name for today.')
       return
     }
 
+    if (allowValidation && !isGuessAllowed(guessInfo, allowedUsernames)) {
+      setMessage('Not a valid member name for today.')
+      return
+    }
+
+    const keywordNormalized = normalizeName(keyword)
     const keywordOk =
-      keywords.length === 0 || keywords.some((token) => keyword.includes(token))
+      keywords.length === 0 || keywords.some((token) => keywordNormalized.includes(token))
 
     if (!keywordOk) {
       setMessage('Your guess must include at least one keyword from the media link.')
       return
     }
 
-    const userId = resolveUserId(username)
-    const nameMatch =
-      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
-    const correctUser = (userId && userId === solutionId) || nameMatch
+    const userId = guessInfo.userId
+    const correctUser = isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)
+    const guessLabel = keyword
+      ? `${guessInfo.displayName || username} - ${keyword}`
+      : guessInfo.displayName || username
 
-    addGuess({ label: `${username} - ${keyword}`, correctUser, keywordOk })
+    addGuess({ label: guessLabel, correctUser, keywordOk })
     setGuessInput('')
 
     if (correctUser) {
@@ -880,7 +1013,7 @@ function MedialeGame({
         <input
           value={guessInput}
           onChange={(event) => setGuessInput(event.target.value)}
-          placeholder="username | keyword"
+          placeholder="username or ID | keyword"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
