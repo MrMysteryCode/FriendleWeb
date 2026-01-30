@@ -1,115 +1,14 @@
-import { useEffect, useState } from 'react'
-import { Link, Route, Routes, useNavigate } from 'react-router-dom'
-import { fetchLatestPuzzles } from './api/friendleApi'
-import ClassicGame from './components/ClassicGame'
-import QuoteleGame from './components/QuoteleGame'
-import MedialeCanvas from './components/MedialeCanvas'
-import StatleGame from './components/StatleGame'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
 
-function HomeView({ games }) {
-  return (
-    <>
-      <main className="game-list">
-        {games.map((game) => (
-          <Link className="game-card game-card-link" to={game.path} key={game.key}>
-            <div className="icon">
-              <span
-                className="game-icon-symbol material-symbols-outlined"
-                aria-hidden="true"
-              >
-                {game.icon}
-              </span>
-            </div>
-            <div className="game-copy">
-              <div className="game-title">
-                <h3>{game.title}</h3>
-              </div>
-              <p>{game.description}</p>
-            </div>
-          </Link>
-        ))}
-      </main>
-    </>
-  )
-}
-
-function GameShell({
-  title,
-  description,
-  puzzleLoading,
-  puzzleError,
-  nextPath,
-  gameKey,
-  autoAdvance,
-  children,
-}) {
-  const navigate = useNavigate()
-  const advance = () => {
-    if (nextPath) {
-      navigate(nextPath)
-    }
-  }
-
-  useEffect(() => {
-    if (!autoAdvance || !gameKey || !nextPath) {
-      return undefined
-    }
-
-    const handler = (event) => {
-      if (event?.detail?.game !== gameKey) return
-      navigate(nextPath)
-    }
-
-    window.addEventListener('friendle:game-complete', handler)
-    return () => window.removeEventListener('friendle:game-complete', handler)
-  }, [autoAdvance, gameKey, nextPath, navigate])
-
-  return (
-    <section className="game-route">
-      <header className="game-route-header">
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </header>
-
-      {puzzleLoading && <p>Loading puzzles...</p>}
-      {puzzleError && <p className="puzzle-error">{puzzleError}</p>}
-
-      {children}
-
-      <div className="game-route-actions">
-        {nextPath && (
-          <button
-            className="modal-action"
-            type="button"
-            onClick={advance}
-          >
-            Finish &amp; Continue
-          </button>
-        )}
-        <button className="ghost-button" type="button" onClick={() => navigate('/')}>
-          Back to menu
-        </button>
-      </div>
-    </section>
-  )
-}
-
-function NotFound() {
-  const navigate = useNavigate()
-
-  return (
-    <section className="game-route">
-      <header className="game-route-header">
-        <h2>Page not found</h2>
-        <p>Pick a game to get started.</p>
-      </header>
-      <button className="modal-action" type="button" onClick={() => navigate('/')}>
-        Back to menu
-      </button>
-    </section>
-  )
+function useGuildQuery() {
+  const location = useLocation()
+  return useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('guild') || ''
+  }, [location.search])
 }
 
 function App() {
@@ -117,9 +16,6 @@ function App() {
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
-  const [puzzleBundle, setPuzzleBundle] = useState(null);
-  const [puzzleError, setPuzzleError] = useState("");
-  const [puzzleLoading, setPuzzleLoading] = useState(true);
 
   const languageOptions = [
     {
@@ -258,239 +154,17 @@ function App() {
         },
       },
     },
-    {
-      code: 'es',
-      label: 'Spanish',
-      flag: 'es',
-      flagName: 'Spain',
-      htmlLang: 'es',
-      strings: {
-        subtitle: { before: 'Adivina a tus ', highlight: 'Amigos', after: '' },
-        games: {
-          classic: {
-            title: 'Clasico',
-            description:
-              'Adivina que miembro del servidor coincide con el perfil de actividad de ayer.',
-          },
-          quotele: {
-            title: 'Quotele',
-            description:
-              'Identifica quien envio la cita mezclada, con nombres y emojis eliminados.',
-          },
-          mediale: {
-            title: 'Mediale',
-            description:
-              'Descubre quien publico la imagen o el GIF mientras se revela.',
-          },
-          statle: {
-            title: 'Statle',
-            description:
-              'Relaciona un perfil de estadisticas diarias con el miembro correcto.',
-          },
-        },
-        how: {
-          title: 'Como funciona Friendle',
-          body:
-            'Cinco minijuegos diarios basados en la actividad de Discord de ayer. Todos ven el mismo rompecabezas con nuevas pistas tras cada error.',
-          bullets: [
-            'Maximo 6 intentos por juego.',
-            'Se reinicia a una hora fija del servidor.',
-            'No se usan roles ni datos sensibles.',
-            'El cache evita reescanear mensajes.',
-          ],
-          action: 'Entendido',
-        },
-        language: {
-          title: 'Idioma',
-          prompt: 'Elige el idioma en el que deseas jugar.',
-          label: 'Idioma',
-          action: 'Guardar',
-        },
-        about: {
-          title: 'Sobre el creador',
-          body:
-            'Soy el creador de Friendle. Hice este juego para celebrar momentos diarios de comunidad en Discord y proteger la privacidad. Friendle convierte la actividad de ayer en puzzles rapidos para competir cada dia.',
-          action: 'Cerrar',
-        },
-        social: {
-          x: 'Seguir en X',
-          about: 'Sobre Friendle',
-          coffee: 'Comprame un cafe',
-        },
-        footer: {
-          privacy: 'Politica de privacidad',
-        },
-        aria: {
-          settings: 'Como funciona Friendle',
-          language: 'Elegir idioma',
-        },
-      },
-    },
-    {
-      code: 'fr',
-      label: 'French',
-      flag: 'fr',
-      flagName: 'France',
-      htmlLang: 'fr',
-      strings: {
-        subtitle: { before: 'Devine tes ', highlight: 'Amis', after: '' },
-        games: {
-          classic: {
-            title: 'Classique',
-            description:
-              "Devine quel membre du serveur correspond au profil d'activite d'hier.",
-          },
-          quotele: {
-            title: 'Quotele',
-            description:
-              'Identifie qui a envoye la citation melangee, avec noms et emojis supprimes.',
-          },
-          mediale: {
-            title: 'Mediale',
-            description:
-              "Decouvre qui a poste l'image ou le GIF a mesure qu'il se revele.",
-          },
-          statle: {
-            title: 'Statle',
-            description:
-              'Associe un profil de statistiques quotidiennes au bon membre.',
-          },
-        },
-        how: {
-          title: 'Comment Friendle fonctionne',
-          body:
-            "Cinq mini-jeux quotidiens bases sur l'activite Discord d'hier. Tout le monde voit le meme puzzle, avec de nouveaux indices apres chaque erreur.",
-          bullets: [
-            '6 essais max par jeu.',
-            'Reinitialise a une heure fixe du serveur.',
-            'Aucun role ni donnee sensible.',
-            'Le cache evite de rescanner les messages.',
-          ],
-          action: 'Compris',
-        },
-        language: {
-          title: 'Langue',
-          prompt: 'Choisis la langue dans laquelle tu veux jouer.',
-          label: 'Langue',
-          action: 'Enregistrer',
-        },
-        about: {
-          title: 'A propos du createur',
-          body:
-            "Je suis le createur de Friendle. J'ai cree ce jeu pour celebrer les moments quotidiens de la communaute Discord tout en protegeant la vie privee. Friendle transforme l'activite d'hier en puzzles rapides pour jouer chaque jour.",
-          action: 'Fermer',
-        },
-        social: {
-          x: 'Suivre sur X',
-          about: 'A propos de Friendle',
-          coffee: 'Achete-moi un cafe',
-        },
-        footer: {
-          privacy: 'Politique de confidentialite',
-        },
-        aria: {
-          settings: 'Comment Friendle fonctionne',
-          language: 'Choisir la langue',
-        },
-      },
-    },
-    {
-      code: 'de',
-      label: 'German',
-      flag: 'de',
-      flagName: 'Germany',
-      htmlLang: 'de',
-      strings: {
-        subtitle: { before: 'Rate deine ', highlight: 'Freunde', after: '' },
-        games: {
-          classic: {
-            title: 'Klassik',
-            description:
-              'Rate welches Servermitglied zum Aktivitaetsprofil von gestern passt.',
-          },
-          quotele: {
-            title: 'Quotele',
-            description:
-              'Finde heraus, wer das gemischte Zitat gesendet hat, ohne Namen und Emojis.',
-          },
-          mediale: {
-            title: 'Mediale',
-            description:
-              'Finde heraus, wer das Bild oder GIF gepostet hat, waehrend es klarer wird.',
-          },
-          statle: {
-            title: 'Statle',
-            description:
-              'Ordne ein einzigartiges Tagesstatistik-Profil dem richtigen Mitglied zu.',
-          },
-        },
-        how: {
-          title: 'So funktioniert Friendle',
-          body:
-            'Fuenf taegliche Minispiele basierend auf der Discord-Aktivitaet von gestern. Alle sehen dasselbe Puzzle, mit neuen Hinweisen nach jedem Fehler.',
-          bullets: [
-            'Maximal 6 Versuche pro Spiel.',
-            'Reset zu einer festen Serverzeit.',
-            'Keine Rollen oder sensiblen Daten.',
-            'Cache vermeidet erneutes Scannen.',
-          ],
-          action: 'Verstanden',
-        },
-        language: {
-          title: 'Sprache',
-          prompt: 'Waehle die Sprache, in der du spielen moechtest.',
-          label: 'Sprache',
-          action: 'Speichern',
-        },
-        about: {
-          title: 'Ueber den Ersteller',
-          body:
-            'Ich bin der Schoepfer von Friendle. Ich habe dieses Spiel gebaut, um taegliche Community-Momente in Discord zu feiern und die Privatsphaere zu schuetzen. Friendle verwandelt die Aktivitaet von gestern in kurze Raetsel fuer jeden Tag.',
-          action: 'Schliessen',
-        },
-        social: {
-          x: 'Folge auf X',
-          about: 'Ueber Friendle',
-          coffee: 'Kauf mir einen Kaffee',
-        },
-        footer: {
-          privacy: 'Datenschutzerklaerung',
-        },
-        aria: {
-          settings: 'So funktioniert Friendle',
-          language: 'Sprache waehlen',
-        },
-      },
-    },
   ]
 
   const currentLanguage =
     languageOptions.find((option) => option.code === language) || languageOptions[0]
   const copy = currentLanguage.strings
+  const guildId = useGuildQuery()
+  const playLink = guildId ? `/play?guild=${encodeURIComponent(guildId)}` : '/play'
 
   useEffect(() => {
     document.title = 'Friendle'
-
   }, [])
-  useEffect(() => {
-  let cancelled = false;
-
-  async function load() {
-    setPuzzleLoading(true);
-    setPuzzleError("");
-    try {
-      const data = await fetchLatestPuzzles();
-      if (!cancelled) setPuzzleBundle(data);
-    } catch (e) {
-      if (!cancelled) setPuzzleError(e.message || "Failed to load puzzles");
-    } finally {
-      if (!cancelled) setPuzzleLoading(false);
-    }
-  }
-
-  load();
-  return () => { cancelled = true; };
-}, []);
 
   useEffect(() => {
     const link = document.querySelector("link[rel='icon']")
@@ -518,49 +192,26 @@ function App() {
 
   const games = [
     {
-      key: 'classic',
       title: copy.games.classic.title,
       icon: 'person',
       description: copy.games.classic.description,
-      path: '/classic',
-      nextPath: '/quotele',
     },
     {
-      key: 'quotele',
       title: copy.games.quotele.title,
       icon: 'chat',
       description: copy.games.quotele.description,
-      path: '/quotele',
-      nextPath: '/mediale',
     },
     {
-      key: 'mediale',
       title: copy.games.mediale.title,
       icon: 'image',
       description: copy.games.mediale.description,
-      path: '/mediale',
-      nextPath: '/statle',
     },
     {
-      key: 'statle',
       title: copy.games.statle.title,
       icon: 'finance',
       description: copy.games.statle.description,
-      path: '/statle',
-      nextPath: '/',
     },
   ]
-
-  const classicGame = games.find((game) => game.key === 'classic')
-  const quoteleGame = games.find((game) => game.key === 'quotele')
-  const medialeGame = games.find((game) => game.key === 'mediale')
-  const statleGame = games.find((game) => game.key === 'statle')
-  const autoAdvance = true
-  const todayLabel = new Date().toLocaleDateString(currentLanguage.htmlLang, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
 
   return (
     <div className="page">
@@ -577,9 +228,7 @@ function App() {
                 settings
               </span>
             </button>
-            <Link className="title-link" to="/">
-              <h1>Friendle</h1>
-            </Link>
+            <h1>Friendle</h1>
             <button
               className="flag-link"
               type="button"
@@ -592,107 +241,38 @@ function App() {
                 alt={`${currentLanguage.flagName} flag`}
               />
             </button>
-            <span className="date-badge">{todayLabel}</span>
           </div>
           <p className="hero-subtitle">
             {copy.subtitle.before}
             <span className="subtitle-highlight">{copy.subtitle.highlight}</span>
             {copy.subtitle.after}
           </p>
+          <Link className="play-button" to={playLink}>
+            Play now
+          </Link>
         </div>
       </header>
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <HomeView
-              games={games}
-            />
-          }
-        />
-        <Route
-          path="/classic"
-          element={
-            <GameShell
-              title={classicGame?.title}
-              description={classicGame?.description}
-              puzzleLoading={puzzleLoading}
-              puzzleError={puzzleError}
-              nextPath={classicGame?.nextPath}
-              gameKey="classic"
-              autoAdvance={autoAdvance}
-            >
-              {!puzzleLoading && !puzzleError && (
-                <>
-                  <ClassicGame puzzle={puzzleBundle?.puzzles?.friendle_daily} />
-                </>
-              )}
-            </GameShell>
-          }
-        />
-        <Route
-          path="/quotele"
-          element={
-            <GameShell
-              title={quoteleGame?.title}
-              description={quoteleGame?.description}
-              puzzleLoading={puzzleLoading}
-              puzzleError={puzzleError}
-              nextPath={quoteleGame?.nextPath}
-              gameKey="quotele"
-              autoAdvance={autoAdvance}
-            >
-              {!puzzleLoading && !puzzleError && (
-                <>
-                  <QuoteleGame puzzle={puzzleBundle?.puzzles?.quotele} />
-                </>
-              )}
-            </GameShell>
-          }
-        />
-        <Route
-          path="/mediale"
-          element={
-            <GameShell
-              title={medialeGame?.title}
-              description={medialeGame?.description}
-              puzzleLoading={puzzleLoading}
-              puzzleError={puzzleError}
-              nextPath={medialeGame?.nextPath}
-              gameKey="mediale"
-              autoAdvance={autoAdvance}
-            >
-              {!puzzleLoading && !puzzleError && (
-                <>
-                  <MedialeCanvas puzzle={puzzleBundle?.puzzles?.mediale} gameKey="mediale" />
-                </>
-              )}
-            </GameShell>
-          }
-        />
-        <Route
-          path="/statle"
-          element={
-            <GameShell
-              title={statleGame?.title}
-              description={statleGame?.description}
-              puzzleLoading={puzzleLoading}
-              puzzleError={puzzleError}
-              nextPath={statleGame?.nextPath}
-              gameKey="statle"
-              autoAdvance={autoAdvance}
-            >
-              {!puzzleLoading && !puzzleError && (
-                <>
-                  <StatleGame puzzle={puzzleBundle?.puzzles?.statle} />
-                </>
-              )}
-            </GameShell>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <main className="game-list">
+        {games.map((game) => (
+          <article className="game-card" key={game.title}>
+            <div className="icon">
+              <span
+                className="game-icon-symbol material-symbols-outlined"
+                aria-hidden="true"
+              >
+                {game.icon}
+              </span>
+            </div>
+            <div className="game-copy">
+              <div className="game-title">
+                <h3>{game.title}</h3>
+              </div>
+              <p>{game.description}</p>
+            </div>
+          </article>
+        ))}
+      </main>
 
       <section className="social-row" aria-label="Social links">
         <a
