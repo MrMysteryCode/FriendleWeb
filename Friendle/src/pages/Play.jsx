@@ -62,15 +62,21 @@ function normalizeName(value) {
     .toLowerCase()
 }
 
+function normalizeGameKey(value) {
+  const key = normalizeName(value)
+  if (!key) return 'classic'
+  if (key === 'friendle_daily' || key === 'daily' || key === 'classic') return 'classic'
+  if (['quotele', 'mediale', 'statle'].includes(key)) return key
+  return 'classic'
+}
+
 function normalizeQuote(value) {
   return String(value || '')
+    .replace(/<@!?\d+>/g, '[mention]')
+    .replace(/@\w+/g, '[mention]')
     .toLowerCase()
-    .replace(/<@!?\d+>/g, '')
-    .replace(/@\w+/g, '')
-    .replace(/#\w+/g, '')
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/[^a-z0-9\s']/g, '')
     .replace(/\s+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s']/gu, '')
     .trim()
 }
 
@@ -88,6 +94,15 @@ function buildNameLookup(names = {}) {
     map.set(normalizeName(displayName), userId)
   })
   return map
+}
+
+function buildAllowedUsernames(allowed = [], names = {}) {
+  const list = Array.isArray(allowed) && allowed.length ? allowed : Object.values(names)
+  return new Set(
+    list
+      .map((name) => normalizeName(name))
+      .filter(Boolean)
+  )
 }
 
 function formatStatLabel(key) {
@@ -163,12 +178,21 @@ function compareFirstBucket(guessValue, solutionValue) {
 }
 
 function compareAccountAge(guessValue, solutionValue) {
-  if (!guessValue || !solutionValue) return 'cell-unknown'
-  if (guessValue === solutionValue) return 'cell-correct'
-  const guessIndex = ACCOUNT_AGE_ORDER.indexOf(guessValue)
-  const solutionIndex = ACCOUNT_AGE_ORDER.indexOf(solutionValue)
+  const guess = normalizeAccountAge(guessValue)
+  const solution = normalizeAccountAge(solutionValue)
+  if (!guess || !solution) return 'cell-unknown'
+  if (guess === solution) return 'cell-correct'
+  const guessIndex = ACCOUNT_AGE_ORDER.indexOf(guess)
+  const solutionIndex = ACCOUNT_AGE_ORDER.indexOf(solution)
   if (guessIndex === -1 || solutionIndex === -1) return 'cell-wrong'
   return Math.abs(guessIndex - solutionIndex) === 1 ? 'cell-close' : 'cell-wrong'
+}
+
+function normalizeAccountAge(value) {
+  return String(value || '')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function extractKeywordsFromUrl(url) {
@@ -186,6 +210,17 @@ function extractKeywordsFromUrl(url) {
 function parseMedialeGuess(input, allowedNames) {
   const raw = input.trim()
   if (!raw) return { username: '', keyword: '' }
+
+  if (!allowedNames || allowedNames.size === 0) {
+    if (raw.includes('|')) {
+      const [userPart, keywordPart] = raw.split('|')
+      return {
+        username: userPart.trim().toLowerCase(),
+        keyword: (keywordPart || '').trim().toLowerCase(),
+      }
+    }
+    return { username: raw.toLowerCase(), keyword: '' }
+  }
 
   if (raw.includes('|')) {
     const [userPart, keywordPart] = raw.split('|')
@@ -208,7 +243,10 @@ function parseMedialeGuess(input, allowedNames) {
 
   if (!matched) {
     for (const name of sortedNames) {
-      const pattern = new RegExp(`\b${name.replace(/[-/\^$*+?.()|[\]{}]/g, '\$&')}\b`, 'i')
+      const pattern = new RegExp(
+        `\\b${name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`,
+        'i'
+      )
       if (pattern.test(lowered)) {
         matched = name
         break
@@ -240,7 +278,7 @@ function GuessHistory({ guesses }) {
 export default function Play() {
   const [params] = useSearchParams()
   const guildId = params.get('guild') || ''
-  const initialGame = params.get('game') || 'classic'
+  const initialGame = normalizeGameKey(params.get('game') || 'classic')
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
@@ -271,12 +309,25 @@ export default function Play() {
     setActiveTab(initialGame)
   }, [initialGame])
 
-  const puzzles = data?.puzzles || {}
-  const names = data?.names || {}
-  const metrics = data?.metrics || {}
-  const allowedUsernames = new Set(data?.allowed_usernames || [])
+  const puzzles = useMemo(() => {
+    const raw = data?.puzzles || {}
+    if (Array.isArray(raw)) {
+      return raw.reduce((acc, puzzle) => {
+        if (puzzle?.game) acc[puzzle.game] = puzzle
+        return acc
+      }, {})
+    }
+    return raw
+  }, [data?.puzzles])
+  const names = data?.names || data?.metadata?.names || {}
+  const metrics = data?.metrics || data?.metadata?.metrics || {}
+  const allowedUsernames = useMemo(
+    () => buildAllowedUsernames(data?.allowed_usernames, names),
+    [data?.allowed_usernames, names]
+  )
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
-  const dateLabel = data?.date || ''
+  const dateLabel = data?.date || data?.metadata?.date || ''
+  const classicPuzzle = puzzles.friendle_daily || puzzles.classic || puzzles.friendle || null
 
   const resolveUserId = (displayName) => {
     const key = normalizeName(displayName)
@@ -284,6 +335,7 @@ export default function Play() {
   }
 
   const resolveDisplayName = (userId) => {
+    if (!userId) return ''
     return names?.[userId] || 'Unknown member'
   }
 
@@ -329,7 +381,7 @@ export default function Play() {
         <div className="play-content">
           {activeTab === 'classic' && (
             <ClassicGame
-              puzzle={puzzles.friendle_daily}
+              puzzle={classicPuzzle}
               metrics={metrics}
               allowedUsernames={allowedUsernames}
               guildId={guildId}
@@ -402,14 +454,16 @@ function ClassicGame({
   const allowedSet = allowedUsernames
   const guesses = state.guesses
 
-  const solutionName = solutionId ? resolveDisplayName(solutionId) : 'Unknown'
+  const solutionName =
+    puzzle?.solution_user_name || (solutionId ? resolveDisplayName(solutionId) : 'Unknown')
+  const allowValidation = allowedSet && allowedSet.size > 0
 
   const handleSubmit = () => {
     if (isComplete) return
     const normalized = normalizeName(guessInput)
     if (!normalized) return
 
-    if (!allowedSet.has(normalized)) {
+    if (allowValidation && !allowedSet.has(normalized)) {
       setMessage('Not a valid member name for today.')
       return
     }
@@ -425,7 +479,10 @@ function ClassicGame({
     addGuess(row)
     setGuessInput('')
 
-    if (userId && userId === solutionId) {
+    const nameMatch =
+      puzzle?.solution_user_name &&
+      normalizeName(puzzle.solution_user_name) === normalized
+    if ((userId && userId === solutionId) || nameMatch) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
       if (onComplete) onComplete()
@@ -548,13 +605,14 @@ function QuoteleGame({
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
   const solutionName = puzzle?.solution_user_name || resolveDisplayName(solutionId)
+  const allowValidation = allowedUsernames && allowedUsernames.size > 0
 
   const handleSubmit = async () => {
     if (isComplete) return
     const username = normalizeName(usernameInput)
     if (!username || !quoteInput.trim()) return
 
-    if (!allowedUsernames.has(username)) {
+    if (allowValidation && !allowedUsernames.has(username)) {
       setMessage('Not a valid member name for today.')
       return
     }
@@ -563,7 +621,9 @@ function QuoteleGame({
     const quoteNormalized = normalizeQuote(quoteInput)
     const quoteHash = await sha256Hex(quoteNormalized)
 
-    const userCorrect = userId && userId === solutionId
+    const nameMatch =
+      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
+    const userCorrect = (userId && userId === solutionId) || nameMatch
     const quoteCorrect = quoteHash === puzzle?.quote_hash
 
     addGuess({
@@ -653,14 +713,15 @@ function StatleGame({
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
-  const solutionName = resolveDisplayName(solutionId)
+  const solutionName = puzzle?.solution_user_name || resolveDisplayName(solutionId)
+  const allowValidation = allowedUsernames && allowedUsernames.size > 0
 
   const handleSubmit = () => {
     if (isComplete) return
     const username = normalizeName(usernameInput)
     if (!username) return
 
-    if (!allowedUsernames.has(username)) {
+    if (allowValidation && !allowedUsernames.has(username)) {
       setMessage('Not a valid member name for today.')
       return
     }
@@ -669,7 +730,9 @@ function StatleGame({
     addGuess({ label: usernameInput.trim(), userId })
     setUsernameInput('')
 
-    if (userId && userId === solutionId) {
+    const nameMatch =
+      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
+    if ((userId && userId === solutionId) || nameMatch) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
       if (onComplete) onComplete()
@@ -741,10 +804,17 @@ function MedialeGame({
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
-  const solutionName = resolveDisplayName(solutionId)
+  const solutionName = puzzle?.solution_user_name || resolveDisplayName(solutionId)
   const mediaUrl = puzzle?.media?.url
   const keywordSource = puzzle?.media?.source_url || mediaUrl
-  const keywords = extractKeywordsFromUrl(keywordSource)
+  const mediaKeywords = Array.isArray(puzzle?.media?.keywords) ? puzzle.media.keywords : []
+  const keywords = Array.from(
+    new Set([
+      ...mediaKeywords.map((item) => normalizeName(item)),
+      ...extractKeywordsFromUrl(keywordSource),
+    ])
+  ).filter(Boolean)
+  const allowValidation = allowedUsernames && allowedUsernames.size > 0
 
   const pixelSteps = [36, 28, 20, 14, 10, 6]
   const pixelSize = pixelSteps[Math.min(attempts, pixelSteps.length - 1)]
@@ -756,7 +826,7 @@ function MedialeGame({
     const username = parsed.username
     const keyword = parsed.keyword
 
-    if (!username || !allowedUsernames.has(username)) {
+    if (!username || (allowValidation && !allowedUsernames.has(username))) {
       setMessage('Not a valid member name for today.')
       return
     }
@@ -770,7 +840,9 @@ function MedialeGame({
     }
 
     const userId = resolveUserId(username)
-    const correctUser = userId && userId === solutionId
+    const nameMatch =
+      puzzle?.solution_user_name && normalizeName(puzzle.solution_user_name) === username
+    const correctUser = (userId && userId === solutionId) || nameMatch
 
     addGuess({ label: `${username} - ${keyword}`, correctUser, keywordOk })
     setGuessInput('')
