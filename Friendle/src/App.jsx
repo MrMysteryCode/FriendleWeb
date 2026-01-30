@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { fetchLatestPuzzles } from "./api/friendleApi";
+import MedialeCanvas from "./components/MedialeCanvas";
+import { useEffect, useState } from 'react'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
 
@@ -7,6 +10,9 @@ function App() {
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
+  const [puzzleBundle, setPuzzleBundle] = useState(null);
+  const [puzzleError, setPuzzleError] = useState("");
+  const [puzzleLoading, setPuzzleLoading] = useState(true);
 
   const languageOptions = [
     {
@@ -357,7 +363,27 @@ function App() {
 
   useEffect(() => {
     document.title = 'Friendle'
+
   }, [])
+  useEffect(() => {
+  let cancelled = false;
+
+  async function load() {
+    setPuzzleLoading(true);
+    setPuzzleError("");
+    try {
+      const data = await fetchLatestPuzzles();
+      if (!cancelled) setPuzzleBundle(data);
+    } catch (e) {
+      if (!cancelled) setPuzzleError(e.message || "Failed to load puzzles");
+    } finally {
+      if (!cancelled) setPuzzleLoading(false);
+    }
+  }
+
+  load();
+  return () => { cancelled = true; };
+}, []);
 
   useEffect(() => {
     const link = document.querySelector("link[rel='icon']")
@@ -442,6 +468,49 @@ function App() {
           </p>
         </div>
       </header>
+
+      <section className="game-list" style={{ marginTop: 20 }}>
+  <article className="game-card">
+    <div className="game-copy">
+      <h3>Daily Puzzles (Live)</h3>
+
+      {puzzleLoading && <p>Loading puzzles…</p>}
+      {puzzleError && <p style={{ color: "salmon" }}>{puzzleError}</p>}
+
+      {!puzzleLoading && !puzzleError && puzzleBundle && (
+        <>
+          <p><strong>Date:</strong> {puzzleBundle.date}</p>
+
+          <details style={{ marginTop: 10 }}>
+            <summary>Friendle payload</summary>
+            <pre style={{ whiteSpace: "pre-wrap" }}>
+              {JSON.stringify(puzzleBundle.puzzles.friendle_daily, null, 2)}
+            </pre>
+          </details>
+
+          <details style={{ marginTop: 10 }}>
+            <summary>Quotele payload</summary>
+            <pre style={{ whiteSpace: "pre-wrap" }}>
+              {JSON.stringify(puzzleBundle.puzzles.quotele, null, 2)}
+            </pre>
+          </details>
+
+          <details style={{ marginTop: 10 }}>
+            <summary>Statle payload</summary>
+            <pre style={{ whiteSpace: "pre-wrap" }}>
+              {JSON.stringify(puzzleBundle.puzzles.statle, null, 2)}
+            </pre>
+          </details>
+        </>
+      )}
+    </div>
+  </article>
+
+  {/* Mediale interactive canvas */}
+  {!puzzleLoading && !puzzleError && puzzleBundle?.puzzles?.mediale && (
+    <MedialeCanvas puzzle={puzzleBundle.puzzles.mediale} />
+  )}
+</section>
 
       <main className="game-list">
         {games.map((game) => (
