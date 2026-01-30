@@ -277,8 +277,11 @@ function GuessHistory({ guesses }) {
 
 export default function Play() {
   const [params] = useSearchParams()
-  const guildId = params.get('guild') || ''
-  const initialGame = normalizeGameKey(params.get('game') || 'classic')
+  const fallbackParams = new URLSearchParams(window.location.search)
+  const guildId = params.get('guild') || fallbackParams.get('guild') || ''
+  const initialGame = normalizeGameKey(
+    params.get('game') || fallbackParams.get('game') || 'classic'
+  )
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')

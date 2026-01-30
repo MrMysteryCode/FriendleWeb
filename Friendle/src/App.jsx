@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
 
@@ -7,7 +7,10 @@ function useGuildQuery() {
   const location = useLocation()
   return useMemo(() => {
     const params = new URLSearchParams(location.search)
-    return params.get('guild') || ''
+    const guild = params.get('guild')
+    if (guild) return guild
+    const fallbackParams = new URLSearchParams(window.location.search)
+    return fallbackParams.get('guild') || ''
   }, [location.search])
 }
 
@@ -16,6 +19,8 @@ function App() {
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const languageOptions = [
     {
@@ -169,6 +174,19 @@ function App() {
   useEffect(() => {
     document.title = 'Friendle'
   }, [])
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const guild = searchParams.get('guild')
+    if (!guild) return
+    const hashParams = new URLSearchParams(location.search)
+    if (hashParams.get('guild')) return
+    const game = searchParams.get('game')
+    const target = `/play?guild=${encodeURIComponent(guild)}${
+      game ? `&game=${encodeURIComponent(game)}` : ''
+    }`
+    navigate(target, { replace: true })
+  }, [location.search, navigate])
 
   useEffect(() => {
     const link = document.querySelector("link[rel='icon']")
