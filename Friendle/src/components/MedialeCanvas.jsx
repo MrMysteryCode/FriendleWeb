@@ -20,7 +20,7 @@ function drawPixelated(ctx, img, pixelSize) {
   ctx.drawImage(off, 0, 0, sw, sh, 0, 0, w, h);
 }
 
-export default function MedialeCanvas({ puzzle }) {
+export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
 
@@ -93,6 +93,11 @@ export default function MedialeCanvas({ puzzle }) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       }
       setStatus("Out of guesses. Revealed!");
+      if (gameKey) {
+        window.dispatchEvent(
+          new CustomEvent("friendle:game-complete", { detail: { game: gameKey } })
+        );
+      }
       return;
     }
 

@@ -1,9 +1,156 @@
 import { useEffect, useState } from 'react'
-import { fetchLatestPuzzles } from "./api/friendleApi";
-import MedialeCanvas from "./components/MedialeCanvas";
-import { useEffect, useState } from 'react'
+import { Link, Route, Routes, useNavigate } from 'react-router-dom'
+import { fetchLatestPuzzles } from './api/friendleApi'
+import ClassicGame from './components/ClassicGame'
+import QuoteleGame from './components/QuoteleGame'
+import MedialeCanvas from './components/MedialeCanvas'
+import StatleGame from './components/StatleGame'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
+
+function HomeView({ games, puzzleBundle, puzzleLoading, puzzleError }) {
+  return (
+    <>
+      <section className="game-list" style={{ marginTop: 20 }}>
+        <article className="game-card">
+          <div className="game-copy">
+            <h3>Daily Puzzles (Live)</h3>
+
+            {puzzleLoading && <p>Loading puzzles...</p>}
+            {puzzleError && <p className="puzzle-error">{puzzleError}</p>}
+
+            {!puzzleLoading && !puzzleError && puzzleBundle && (
+              <>
+                <p>
+                  <strong>Date:</strong> {puzzleBundle.date}
+                </p>
+
+                <details style={{ marginTop: 10 }}>
+                  <summary>Friendle payload</summary>
+                  <pre style={{ whiteSpace: 'pre-wrap' }}>
+                    {JSON.stringify(puzzleBundle.puzzles.friendle_daily, null, 2)}
+                  </pre>
+                </details>
+
+                <details style={{ marginTop: 10 }}>
+                  <summary>Quotele payload</summary>
+                  <pre style={{ whiteSpace: 'pre-wrap' }}>
+                    {JSON.stringify(puzzleBundle.puzzles.quotele, null, 2)}
+                  </pre>
+                </details>
+
+                <details style={{ marginTop: 10 }}>
+                  <summary>Statle payload</summary>
+                  <pre style={{ whiteSpace: 'pre-wrap' }}>
+                    {JSON.stringify(puzzleBundle.puzzles.statle, null, 2)}
+                  </pre>
+                </details>
+              </>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <main className="game-list">
+        {games.map((game) => (
+          <Link className="game-card game-card-link" to={game.path} key={game.key}>
+            <div className="icon">
+              <span
+                className="game-icon-symbol material-symbols-outlined"
+                aria-hidden="true"
+              >
+                {game.icon}
+              </span>
+            </div>
+            <div className="game-copy">
+              <div className="game-title">
+                <h3>{game.title}</h3>
+              </div>
+              <p>{game.description}</p>
+            </div>
+          </Link>
+        ))}
+      </main>
+    </>
+  )
+}
+
+function GameShell({
+  title,
+  description,
+  puzzleLoading,
+  puzzleError,
+  nextPath,
+  gameKey,
+  autoAdvance,
+  children,
+}) {
+  const navigate = useNavigate()
+  const advance = () => {
+    if (nextPath) {
+      navigate(nextPath)
+    }
+  }
+
+  useEffect(() => {
+    if (!autoAdvance || !gameKey || !nextPath) {
+      return undefined
+    }
+
+    const handler = (event) => {
+      if (event?.detail?.game !== gameKey) return
+      navigate(nextPath)
+    }
+
+    window.addEventListener('friendle:game-complete', handler)
+    return () => window.removeEventListener('friendle:game-complete', handler)
+  }, [autoAdvance, gameKey, nextPath, navigate])
+
+  return (
+    <section className="game-route">
+      <header className="game-route-header">
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </header>
+
+      {puzzleLoading && <p>Loading puzzles...</p>}
+      {puzzleError && <p className="puzzle-error">{puzzleError}</p>}
+
+      {children}
+
+      <div className="game-route-actions">
+        {nextPath && (
+          <button
+            className="modal-action"
+            type="button"
+            onClick={advance}
+          >
+            Finish &amp; Continue
+          </button>
+        )}
+        <button className="ghost-button" type="button" onClick={() => navigate('/')}>
+          Back to menu
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function NotFound() {
+  const navigate = useNavigate()
+
+  return (
+    <section className="game-route">
+      <header className="game-route-header">
+        <h2>Page not found</h2>
+        <p>Pick a game to get started.</p>
+      </header>
+      <button className="modal-action" type="button" onClick={() => navigate('/')}>
+        Back to menu
+      </button>
+    </section>
+  )
+}
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -411,26 +558,44 @@ function App() {
 
   const games = [
     {
+      key: 'classic',
       title: copy.games.classic.title,
       icon: 'person',
       description: copy.games.classic.description,
+      path: '/classic',
+      nextPath: '/quotele',
     },
     {
+      key: 'quotele',
       title: copy.games.quotele.title,
       icon: 'chat',
       description: copy.games.quotele.description,
+      path: '/quotele',
+      nextPath: '/mediale',
     },
     {
+      key: 'mediale',
       title: copy.games.mediale.title,
       icon: 'image',
       description: copy.games.mediale.description,
+      path: '/mediale',
+      nextPath: '/statle',
     },
     {
+      key: 'statle',
       title: copy.games.statle.title,
       icon: 'finance',
       description: copy.games.statle.description,
+      path: '/statle',
+      nextPath: '/',
     },
   ]
+
+  const classicGame = games.find((game) => game.key === 'classic')
+  const quoteleGame = games.find((game) => game.key === 'quotele')
+  const medialeGame = games.find((game) => game.key === 'mediale')
+  const statleGame = games.find((game) => game.key === 'statle')
+  const autoAdvance = true
 
   return (
     <div className="page">
@@ -469,69 +634,106 @@ function App() {
         </div>
       </header>
 
-      <section className="game-list" style={{ marginTop: 20 }}>
-  <article className="game-card">
-    <div className="game-copy">
-      <h3>Daily Puzzles (Live)</h3>
-
-      {puzzleLoading && <p>Loading puzzles…</p>}
-      {puzzleError && <p style={{ color: "salmon" }}>{puzzleError}</p>}
-
-      {!puzzleLoading && !puzzleError && puzzleBundle && (
-        <>
-          <p><strong>Date:</strong> {puzzleBundle.date}</p>
-
-          <details style={{ marginTop: 10 }}>
-            <summary>Friendle payload</summary>
-            <pre style={{ whiteSpace: "pre-wrap" }}>
-              {JSON.stringify(puzzleBundle.puzzles.friendle_daily, null, 2)}
-            </pre>
-          </details>
-
-          <details style={{ marginTop: 10 }}>
-            <summary>Quotele payload</summary>
-            <pre style={{ whiteSpace: "pre-wrap" }}>
-              {JSON.stringify(puzzleBundle.puzzles.quotele, null, 2)}
-            </pre>
-          </details>
-
-          <details style={{ marginTop: 10 }}>
-            <summary>Statle payload</summary>
-            <pre style={{ whiteSpace: "pre-wrap" }}>
-              {JSON.stringify(puzzleBundle.puzzles.statle, null, 2)}
-            </pre>
-          </details>
-        </>
-      )}
-    </div>
-  </article>
-
-  {/* Mediale interactive canvas */}
-  {!puzzleLoading && !puzzleError && puzzleBundle?.puzzles?.mediale && (
-    <MedialeCanvas puzzle={puzzleBundle.puzzles.mediale} />
-  )}
-</section>
-
-      <main className="game-list">
-        {games.map((game) => (
-          <article className="game-card" key={game.title}>
-            <div className="icon">
-              <span
-                className="game-icon-symbol material-symbols-outlined"
-                aria-hidden="true"
-              >
-                {game.icon}
-              </span>
-            </div>
-            <div className="game-copy">
-              <div className="game-title">
-                <h3>{game.title}</h3>
-              </div>
-              <p>{game.description}</p>
-            </div>
-          </article>
-        ))}
-      </main>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomeView
+              games={games}
+              puzzleBundle={puzzleBundle}
+              puzzleLoading={puzzleLoading}
+              puzzleError={puzzleError}
+            />
+          }
+        />
+        <Route
+          path="/classic"
+          element={
+            <GameShell
+              title={classicGame?.title}
+              description={classicGame?.description}
+              puzzleLoading={puzzleLoading}
+              puzzleError={puzzleError}
+              nextPath={classicGame?.nextPath}
+              gameKey="classic"
+              autoAdvance={autoAdvance}
+            >
+              {!puzzleLoading && !puzzleError && (
+                <>
+                  <ClassicGame puzzle={puzzleBundle?.puzzles?.friendle_daily} />
+                </>
+              )}
+            </GameShell>
+          }
+        />
+        <Route
+          path="/quotele"
+          element={
+            <GameShell
+              title={quoteleGame?.title}
+              description={quoteleGame?.description}
+              puzzleLoading={puzzleLoading}
+              puzzleError={puzzleError}
+              nextPath={quoteleGame?.nextPath}
+              gameKey="quotele"
+              autoAdvance={autoAdvance}
+            >
+              {!puzzleLoading && !puzzleError && (
+                <>
+                  <QuoteleGame puzzle={puzzleBundle?.puzzles?.quotele} />
+                </>
+              )}
+            </GameShell>
+          }
+        />
+        <Route
+          path="/mediale"
+          element={
+            <GameShell
+              title={medialeGame?.title}
+              description={medialeGame?.description}
+              puzzleLoading={puzzleLoading}
+              puzzleError={puzzleError}
+              nextPath={medialeGame?.nextPath}
+              gameKey="mediale"
+              autoAdvance={autoAdvance}
+            >
+              {!puzzleLoading && !puzzleError && (
+                <>
+                  <MedialeCanvas puzzle={puzzleBundle?.puzzles?.mediale} gameKey="mediale" />
+                  {puzzleBundle?.puzzles?.mediale && (
+                    <details className="puzzle-details">
+                      <summary>Mediale payload</summary>
+                      <pre>{JSON.stringify(puzzleBundle.puzzles.mediale, null, 2)}</pre>
+                    </details>
+                  )}
+                </>
+              )}
+            </GameShell>
+          }
+        />
+        <Route
+          path="/statle"
+          element={
+            <GameShell
+              title={statleGame?.title}
+              description={statleGame?.description}
+              puzzleLoading={puzzleLoading}
+              puzzleError={puzzleError}
+              nextPath={statleGame?.nextPath}
+              gameKey="statle"
+              autoAdvance={autoAdvance}
+            >
+              {!puzzleLoading && !puzzleError && (
+                <>
+                  <StatleGame puzzle={puzzleBundle?.puzzles?.statle} />
+                </>
+              )}
+            </GameShell>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
 
       <section className="social-row" aria-label="Social links">
         <a
@@ -713,4 +915,3 @@ function App() {
 }
 
 export default App
-
