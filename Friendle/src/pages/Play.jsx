@@ -299,7 +299,7 @@ export default function Play() {
     return (
       <div className="page play-page">
         <Link className="play-back" to="/">
-          <- Back to home
+          {'<- Back to home'}
         </Link>
         <div className="play-empty">
           <h2>Ready to play Friendle?</h2>
@@ -312,7 +312,7 @@ export default function Play() {
   return (
     <div className="page play-page">
       <Link className="play-back" to={`/?guild=${encodeURIComponent(guildId)}`}>
-        <- Back to home
+        {'<- Back to home'}
       </Link>
 
       <header className="play-header">
