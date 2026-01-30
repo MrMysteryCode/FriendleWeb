@@ -20,6 +20,83 @@ function drawPixelated(ctx, img, pixelSize) {
   ctx.drawImage(off, 0, 0, sw, sh, 0, 0, w, h);
 }
 
+const STOP_WORDS = new Set([
+  "gif",
+  "gifs",
+  "image",
+  "images",
+  "view",
+  "media",
+  "cdn",
+  "tenor",
+  "giphy",
+  "img",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "mp4",
+  "webm",
+]);
+
+function normalizeToken(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function extractKeywordsFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const rawTokens = decodeURIComponent(parsed.pathname)
+      .split(/[\/\\-_.]+/)
+      .concat(parsed.hostname.split("."));
+    return rawTokens
+      .map((token) => token.trim().toLowerCase())
+      .filter((token) => token.length > 1)
+      .filter((token) => !STOP_WORDS.has(token))
+      .filter((token) => !/^\d+$/.test(token));
+  } catch {
+    return [];
+  }
+}
+
+function extractAnswers(puzzle) {
+  const values = [];
+  const pushValue = (value) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(pushValue);
+      return;
+    }
+    if (typeof value === "string") {
+      values.push(value);
+      return;
+    }
+    if (typeof value === "object") {
+      const name = value.username || value.user || value.name || value.member;
+      if (name) values.push(name);
+    }
+  };
+
+  pushValue(puzzle?.answer);
+  pushValue(puzzle?.answers);
+  pushValue(puzzle?.solution);
+  pushValue(puzzle?.solutions);
+  pushValue(puzzle?.correct);
+  pushValue(puzzle?.correctAnswer);
+  pushValue(puzzle?.correct_answer);
+  pushValue(puzzle?.target);
+  pushValue(puzzle?.user);
+  pushValue(puzzle?.username);
+  pushValue(puzzle?.member);
+  pushValue(puzzle?.author);
+  pushValue(puzzle?.poster);
+
+  return Array.from(new Set(values.map((value) => normalizeToken(value)).filter(Boolean)));
+}
+
 export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
@@ -29,15 +106,22 @@ export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
   const [guessCount, setGuessCount] = useState(0);
 
   const keywords = useMemo(() => {
-    const arr = puzzle?.media?.keywords || [];
-    return arr.map((k) => String(k).toLowerCase());
+    const provided = (puzzle?.media?.keywords || []).map((k) => String(k).toLowerCase());
+    const sourceUrl = puzzle?.media?.source_url || puzzle?.media?.url;
+    const derived = sourceUrl ? extractKeywordsFromUrl(sourceUrl) : [];
+    return Array.from(new Set([...provided, ...derived]));
   }, [puzzle]);
+
+  const answers = useMemo(() => extractAnswers(puzzle), [puzzle]);
 
   // 6 guesses, starts very pixelated
   const pixelSchedule = [40, 28, 20, 14, 10, 6];
   const pixelSize = pixelSchedule[Math.min(guessCount, pixelSchedule.length - 1)];
 
   useEffect(() => {
+    setStatus("");
+    setGuess("");
+    setGuessCount(0);
     if (!puzzle?.media?.url) return;
 
     const canvas = canvasRef.current;
@@ -50,7 +134,7 @@ export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
     img.onload = () => {
       imgRef.current = img;
       drawPixelated(ctx, img, pixelSize);
-      setStatus("Guess the media. Your guess must include at least one keyword from the link.");
+      setStatus("Guess who posted it. Include at least one word from the media link.");
     };
 
     img.onerror = () => {
@@ -67,14 +151,24 @@ export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
     drawPixelated(ctx, img, pixelSize);
   }, [pixelSize]);
 
+  function revealImage() {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const img = imgRef.current;
+    if (!ctx || !img) return;
+    ctx.imageSmoothingEnabled = true;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  }
+
   function submitGuess() {
     const g = guess.trim().toLowerCase();
     if (!g) return;
 
-    // Enforce rule: guess must contain at least one keyword (if we have keywords)
-    const keywordOk = keywords.length === 0 ? true : keywords.some((k) => g.includes(k));
+    const keywordOk =
+      keywords.length === 0 ? true : keywords.some((k) => g.includes(k));
     if (!keywordOk) {
-      setStatus("Invalid guess: must include at least one keyword from the link.");
+      setStatus("Your guess must include at least one word from the media link.");
       return;
     }
 
@@ -82,16 +176,23 @@ export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
     setGuessCount(next);
     setGuess("");
 
-    if (next >= 6) {
-      // final reveal (no pixelation)
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      const img = imgRef.current;
-      if (ctx && img) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const guessNormalized = normalizeToken(g);
+    const isCorrect =
+      answers.length > 0 && answers.some((answer) => guessNormalized.includes(answer));
+
+    if (isCorrect) {
+      revealImage();
+      setStatus("Correct! Moving to the next game.");
+      if (gameKey) {
+        window.dispatchEvent(
+          new CustomEvent("friendle:game-complete", { detail: { game: gameKey } })
+        );
       }
+      return;
+    }
+
+    if (next >= 6) {
+      revealImage();
       setStatus("Out of guesses. Revealed!");
       if (gameKey) {
         window.dispatchEvent(
@@ -132,10 +233,6 @@ export default function MedialeCanvas({ puzzle, gameKey = "mediale" }) {
           </button>
         </div>
 
-        {/* Optional: show keywords for debugging only (remove later) */}
-        <div style={{ marginTop: 10, opacity: 0.7, fontSize: 12 }}>
-          Keywords: {keywords.length ? keywords.join(", ") : "(none)"}
-        </div>
       </div>
     </article>
   );
