@@ -669,7 +669,6 @@ function ClassicGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
-      if (onComplete) onComplete()
       return
     }
 
