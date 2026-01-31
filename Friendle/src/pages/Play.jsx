@@ -45,6 +45,13 @@ function useStoredGameState(guildId, date, game) {
     setState((prev) => ({ ...prev, status }))
   }
 
+  const resetGame = () => {
+    setState({ guesses: [], status: null })
+    if (key) {
+      localStorage.removeItem(key)
+    }
+  }
+
   const attempts = state.guesses.length
   const isComplete = state.status === 'won' || state.status === 'lost' || attempts >= MAX_GUESSES
 
@@ -54,7 +61,7 @@ function useStoredGameState(guildId, date, game) {
     }
   }, [attempts, state.status])
 
-  return { state, addGuess, setStatus, attempts, isComplete }
+  return { state, addGuess, setStatus, resetGame, attempts, isComplete }
 }
 
 function normalizeName(value) {
@@ -570,7 +577,7 @@ function ClassicGame({
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
     'classic'
@@ -627,6 +634,12 @@ function ClassicGame({
     setMessage('Keep going!')
   }
 
+  const handleReset = () => {
+    resetGame()
+    setGuessInput('')
+    setMessage('')
+  }
+
   if (!puzzle) {
     return <p className="game-status">No Classic puzzle available.</p>
   }
@@ -666,6 +679,9 @@ function ClassicGame({
       </div>
 
       <p className="game-status">{message}</p>
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
 
       <div className="guess-table">
@@ -724,7 +740,7 @@ function QuoteleGame({
   const [quoteInput, setQuoteInput] = useState('')
   const [usernameInput, setUsernameInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
     'quotele'
@@ -788,6 +804,13 @@ function QuoteleGame({
     }
   }
 
+  const handleReset = () => {
+    resetGame()
+    setQuoteInput('')
+    setUsernameInput('')
+    setMessage('')
+  }
+
   if (!puzzle) {
     return <p className="game-status">No Quotele puzzle available.</p>
   }
@@ -817,6 +840,9 @@ function QuoteleGame({
       </div>
 
       <p className="game-status">{message}</p>
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
@@ -835,7 +861,7 @@ function StatleGame({
 }) {
   const [usernameInput, setUsernameInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
     'statle'
@@ -877,6 +903,12 @@ function StatleGame({
     setMessage('Try another guess.')
   }
 
+  const handleReset = () => {
+    resetGame()
+    setUsernameInput('')
+    setMessage('')
+  }
+
   if (!puzzle) {
     return <p className="game-status">No Statle puzzle available.</p>
   }
@@ -906,6 +938,9 @@ function StatleGame({
       </div>
 
       <p className="game-status">{message}</p>
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
@@ -924,7 +959,7 @@ function MedialeGame({
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
     'mediale'
@@ -1000,6 +1035,12 @@ function MedialeGame({
     setMessage('Not quite. The image is getting clearer.')
   }
 
+  const handleReset = () => {
+    resetGame()
+    setGuessInput('')
+    setMessage('')
+  }
+
   if (!puzzle) {
     return <p className="game-status">No Mediale puzzle available.</p>
   }
@@ -1022,6 +1063,9 @@ function MedialeGame({
       </div>
 
       <p className="game-status">{message}</p>
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
       {isComplete && (
         <div className="game-status">
           <p>Answer: {solutionName}</p>
