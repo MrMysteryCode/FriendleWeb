@@ -1307,7 +1307,6 @@ function MedialeGame({
       setStatus('won')
       setMessage(`Correct! ${solutionName} posted the media.`)
       if (onCorrect) onCorrect()
-      if (onComplete) onComplete()
       return
     }
 
@@ -1348,7 +1347,7 @@ function MedialeGame({
         <input
           value={guessInput}
           onChange={(event) => setGuessInput(event.target.value)}
-          placeholder="username or ID"
+          placeholder="username"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
