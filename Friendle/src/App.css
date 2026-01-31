@@ -85,11 +85,11 @@ body {
 }
 
 .title-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
-  justify-content: center;
+  width: 100%;
 }
 
 .lang-row {
@@ -97,6 +97,30 @@ body {
   align-items: center;
   gap: 10px;
   justify-content: center;
+}
+
+.title-row h1 {
+  justify-self: center;
+}
+
+.settings-link {
+  justify-self: start;
+}
+
+.lang-row {
+  justify-self: end;
+}
+
+@media (max-width: 600px) {
+  .title-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .settings-link,
+  .lang-row {
+    justify-self: center;
+  }
 }
 
 .title-link {
