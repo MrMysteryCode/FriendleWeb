@@ -197,6 +197,14 @@ function clampValue(value) {
   return value
 }
 
+function normalizeTopWord(value) {
+  if (!value) return 'None'
+  const text = String(value).trim()
+  if (!text) return 'None'
+  if (!/[a-z]/i.test(text)) return 'None'
+  return text
+}
+
 function getMetricValue(metrics, key) {
   if (!metrics) return null
   return metrics[key]
@@ -499,10 +507,12 @@ export default function Play() {
   }, [data?.puzzles])
   const names = data?.names || data?.metadata?.names || {}
   const metrics = data?.metrics || data?.metadata?.metrics || {}
+  const allowedFromPayload =
+    data?.allowed_usernames || data?.metadata?.allowed_usernames || data?.allowedUsernames
   const nameIndex = useMemo(() => buildNameIndex(names), [names])
   const allowedUsernames = useMemo(
-    () => buildAllowedUsernames(data?.allowed_usernames, names),
-    [data?.allowed_usernames, names]
+    () => buildAllowedUsernames(allowedFromPayload, names),
+    [allowedFromPayload, names]
   )
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
   const dateLabel = data?.date || data?.metadata?.date || ''
@@ -713,7 +723,7 @@ function ClassicGame({
         </div>
         <div className="metrics-row">
           <span>{clampValue(solutionMetrics?.messageCount)}</span>
-          <span>{clampValue(solutionMetrics?.topWord)}</span>
+          <span>{normalizeTopWord(solutionMetrics?.topWord)}</span>
           <span>{clampValue(solutionMetrics?.activeWindow)}</span>
           <span>{clampValue(solutionMetrics?.mentions)}</span>
           <span>{clampValue(solutionMetrics?.firstMessageBucket)}</span>
