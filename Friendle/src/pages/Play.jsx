@@ -538,6 +538,12 @@ export default function Play() {
     setActiveTab(initialGame)
   }, [initialGame])
 
+  useEffect(() => {
+    if (data?.puzzles) {
+      console.log('[Friendle] raw puzzles payload', data.puzzles)
+    }
+  }, [data?.puzzles])
+
   const puzzles = useMemo(() => {
     const raw = data?.puzzles
     if (!raw || typeof raw !== 'object') return {}

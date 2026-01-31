@@ -86,9 +86,10 @@ body {
 
 .title-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+  justify-content: center;
 }
 
 .lang-row {
