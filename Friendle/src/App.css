@@ -92,6 +92,12 @@ body {
   justify-content: center;
 }
 
+.lang-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .title-link {
   text-decoration: none;
   color: inherit;

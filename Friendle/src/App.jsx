@@ -3,6 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
 
+/**
+ * Read the guild query parameter from the URL.
+ */
 function useGuildQuery() {
   const location = useLocation()
   return useMemo(() => {
@@ -12,6 +15,32 @@ function useGuildQuery() {
     const fallbackParams = new URLSearchParams(window.location.search)
     return fallbackParams.get('guild') || ''
   }, [location.search])
+}
+
+/**
+ * Return a human-readable countdown to the next 1:00 AM America/New_York reset.
+ */
+function getNextResetCountdown() {
+  const now = new Date()
+  const nyNow = new Date(
+    now.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  )
+  const resetNy = new Date(nyNow)
+  resetNy.setHours(1, 0, 0, 0)
+  if (nyNow >= resetNy) {
+    resetNy.setDate(resetNy.getDate() + 1)
+  }
+  const offsetMs = nyNow.getTime() - now.getTime()
+  const resetUtc = new Date(resetNy.getTime() - offsetMs)
+  const diffMs = resetUtc.getTime() - now.getTime()
+  const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(
+    2,
+    '0'
+  )}:${String(seconds).padStart(2, '0')} ET`
 }
 
 function App() {
@@ -199,28 +228,16 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const computeCountdown = () => {
-      const now = new Date()
-      const nextReset = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-        1, 0, 0
-      ))
-      if (now >= nextReset) {
-        nextReset.setUTCDate(nextReset.getUTCDate() + 1)
-      }
-      const diffMs = nextReset.getTime() - now.getTime()
-      const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
-      const hours = Math.floor(totalSeconds / 3600)
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
-      const seconds = totalSeconds % 60
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} UTC`
+    const saved = localStorage.getItem('friendle:language')
+    if (saved) {
+      setLanguage(saved)
     }
+  }, [])
 
-    setResetCountdown(computeCountdown())
+  useEffect(() => {
+    setResetCountdown(getNextResetCountdown())
     const interval = setInterval(() => {
-      setResetCountdown(computeCountdown())
+      setResetCountdown(getNextResetCountdown())
     }, 1000)
     return () => clearInterval(interval)
   }, [])
@@ -248,6 +265,10 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = currentLanguage.htmlLang
   }, [currentLanguage.htmlLang])
+
+  useEffect(() => {
+    localStorage.setItem('friendle:language', language)
+  }, [language])
 
   useEffect(() => {
     if (!isModalOpen && !isLangModalOpen && !isAboutModalOpen) return
@@ -287,6 +308,164 @@ function App() {
       icon: 'finance',
       description: copy.games.statle.description,
     },
+    {
+      code: 'es-ES',
+      label: 'Español',
+      flag: 'es',
+      flagName: 'Spain',
+      htmlLang: 'es',
+      strings: {
+        subtitle: { before: 'Adivina a tus ', highlight: 'Amigos', after: '' },
+        games: {
+          classic: {
+            title: 'Clásico',
+            description:
+              'Adivina qué miembro coincide con el perfil de actividad mostrado.',
+          },
+          quotele: {
+            title: 'Quotele',
+            description:
+              'Identifica quién envió la cita mezclada (usuarios y emojis ocultos).',
+          },
+          mediale: {
+            title: 'Mediale',
+            description:
+              'Descubre quién publicó la imagen o GIF a medida que se aclara.',
+          },
+          statle: {
+            title: 'Statle',
+            description:
+              'Relaciona un perfil de estadísticas destacado con el miembro correcto.',
+          },
+        },
+        how: {
+          title: 'Cómo funciona Friendle',
+          body:
+            'Cinco mini‑juegos diarios con actividad anonimizada. Todos ven el mismo puzzle.',
+          metrics: {
+            title: 'Significado de las pistas',
+            items: [
+              { label: 'Message count', text: 'Cantidad de mensajes enviados.' },
+              { label: 'Top word', text: 'Palabra no común más usada.' },
+              { label: 'Active window', text: 'Franja horaria más activa (UTC).' },
+              { label: 'Mentions', text: 'Usuarios mencionados.' },
+              { label: 'First message', text: 'Hora del primer mensaje.' },
+              { label: 'Account age', text: 'Antigüedad de la cuenta.' },
+            ],
+          },
+          bullets: [
+            'Máximo 6 intentos por juego.',
+            'Se reinicia a una hora fija.',
+            'No se usan roles ni datos sensibles.',
+            'El caché evita re‑escanear mensajes.',
+          ],
+          action: 'Entendido',
+        },
+        language: {
+          title: 'Idioma',
+          prompt: 'Elige el idioma en el que quieres jugar.',
+          label: 'Idioma',
+          action: 'Guardar',
+        },
+        about: {
+          title: 'Sobre el creador',
+          body:
+            'Creé Friendle para compartir momentos diarios de Discord de forma divertida.',
+          action: 'Cerrar',
+        },
+        social: {
+          x: 'Seguir en X',
+          about: 'Sobre Friendle',
+          coffee: 'Invítame un café',
+        },
+        footer: {
+          privacy: 'Política de privacidad',
+        },
+        aria: {
+          settings: 'Cómo funciona Friendle',
+          language: 'Elegir idioma',
+        },
+      },
+    },
+    {
+      code: 'fr-FR',
+      label: 'Français',
+      flag: 'fr',
+      flagName: 'France',
+      htmlLang: 'fr',
+      strings: {
+        subtitle: { before: 'Devine tes ', highlight: 'Amis', after: '' },
+        games: {
+          classic: {
+            title: 'Classique',
+            description:
+              "Devine quel membre correspond au profil d'activité affiché.",
+          },
+          quotele: {
+            title: 'Quotele',
+            description:
+              'Identifie qui a envoyé la citation mélangée (utilisateurs/émojis masqués).',
+          },
+          mediale: {
+            title: 'Mediale',
+            description:
+              "Découvre qui a posté l'image ou le GIF à mesure qu'il se révèle.",
+          },
+          statle: {
+            title: 'Statle',
+            description:
+              'Associe un profil de stats marquant au bon membre.',
+          },
+        },
+        how: {
+          title: 'Comment fonctionne Friendle',
+          body:
+            "Cinq mini‑jeux quotidiens basés sur l'activité anonymisée. Tout le monde voit le même puzzle.",
+          metrics: {
+            title: 'Signification des indices',
+            items: [
+              { label: 'Message count', text: 'Nombre de messages envoyés.' },
+              { label: 'Top word', text: 'Mot non commun le plus utilisé.' },
+              { label: 'Active window', text: "Période la plus active (UTC)." },
+              { label: 'Mentions', text: 'Utilisateurs mentionnés.' },
+              { label: 'First message', text: 'Heure du premier message.' },
+              { label: 'Account age', text: 'Âge du compte.' },
+            ],
+          },
+          bullets: [
+            '6 essais max par jeu.',
+            'Réinitialisation à heure fixe.',
+            'Aucun rôle ni donnée sensible.',
+            'Le cache évite de rescanner les messages.',
+          ],
+          action: 'Compris',
+        },
+        language: {
+          title: 'Langue',
+          prompt: 'Choisis la langue de jeu.',
+          label: 'Langue',
+          action: 'Enregistrer',
+        },
+        about: {
+          title: 'À propos du créateur',
+          body:
+            "J'ai créé Friendle pour partager des moments Discord quotidiens.",
+          action: 'Fermer',
+        },
+        social: {
+          x: 'Suivre sur X',
+          about: 'À propos de Friendle',
+          coffee: 'M’offrir un café',
+        },
+        footer: {
+          privacy: 'Politique de confidentialité',
+        },
+        aria: {
+          settings: 'Comment fonctionne Friendle',
+          language: 'Choisir la langue',
+        },
+      },
+    },
   ]
 
   return (
@@ -305,21 +484,23 @@ function App() {
               </span>
             </button>
             <h1>Friendle</h1>
-            {resetCountdown && (
-              <span className="date-badge">Resets in {resetCountdown}</span>
-            )}
-            <button
-              className="flag-link"
-              type="button"
-              onClick={() => setIsLangModalOpen(true)}
-              aria-label={copy.aria.language}
-            >
-              <img
-                className="flag-icon"
-                src={`https://flagcdn.vercel.app/flags/${currentLanguage.flag}.svg`}
-                alt={`${currentLanguage.flagName} flag`}
-              />
-            </button>
+            <div className="lang-row">
+              {resetCountdown && (
+                <span className="date-badge">Resets in {resetCountdown}</span>
+              )}
+              <button
+                className="flag-link"
+                type="button"
+                onClick={() => setIsLangModalOpen(true)}
+                aria-label={copy.aria.language}
+              >
+                <img
+                  className="flag-icon"
+                  src={`https://flagcdn.vercel.app/flags/${currentLanguage.flag}.svg`}
+                  alt={`${currentLanguage.flagName} flag`}
+                />
+              </button>
+            </div>
           </div>
           <p className="hero-subtitle">
             {copy.subtitle.before}

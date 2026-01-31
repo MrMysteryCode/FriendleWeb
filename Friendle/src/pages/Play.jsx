@@ -11,6 +11,9 @@ function storageKey(guildId, date, game) {
   return `friendle:${guildId}:${date}:${game}`
 }
 
+/**
+ * Persist per-game state (guesses + status) in localStorage for a guild/date.
+ */
 function useStoredGameState(guildId, date, game) {
   const key = guildId && date ? storageKey(guildId, date, game) : null
   const [state, setState] = useState({ guesses: [], status: null })
@@ -64,12 +67,18 @@ function useStoredGameState(guildId, date, game) {
   return { state, addGuess, setStatus, resetGame, attempts, isComplete }
 }
 
+/**
+ * Normalize input for case-insensitive comparisons.
+ */
 function normalizeName(value) {
   return String(value || '')
     .trim()
     .toLowerCase()
 }
 
+/**
+ * Normalize usernames and IDs for loose matching (alphanumerics only).
+ */
 function normalizeUserToken(value) {
   return String(value || '')
     .trim()
@@ -149,6 +158,9 @@ function buildNameLookup(names = {}) {
   return map
 }
 
+/**
+ * Build a set of allowed usernames (and their IDs) for validation.
+ */
 function buildAllowedUsernames(allowed = [], names = {}) {
   const list = Array.isArray(allowed) && allowed.length ? allowed : Object.values(names)
   const allowedSet = new Set()
@@ -289,6 +301,9 @@ function normalizeAccountAge(value) {
     .trim()
 }
 
+/**
+ * Build a searchable name index from the guild name map.
+ */
 function buildNameIndex(names = {}) {
   return Object.entries(names)
     .map(([userId, displayName]) => ({
@@ -317,6 +332,9 @@ function findBestUserMatch(normalizedGuess, nameIndex) {
   return matches[0]
 }
 
+/**
+ * Resolve a raw user guess into userId + best display name match.
+ */
 function resolveUserGuess(rawInput, nameLookup, nameIndex, names) {
   const raw = String(rawInput || '').trim()
   const normalizedGuess = normalizeUserToken(raw)
@@ -359,6 +377,9 @@ function isGuessAllowed(guessInfo, allowedSet) {
   return false
 }
 
+/**
+ * Determine whether a guess matches the solution (id, exact, or partial).
+ */
 function isUserGuessMatch(guessInfo, solutionId, solutionName) {
   if (!guessInfo?.normalizedGuess) return false
   const guessToken = guessInfo.normalizedGuess
@@ -426,6 +447,9 @@ function GuessHistory({ guesses }) {
   )
 }
 
+/**
+ * Render a collapsible pool of possible guesses.
+ */
 function GuessPool({ names, allowedUsernames, variant = 'dark' }) {
   const pool = useMemo(() => {
     const list = buildGuessPool(names, allowedUsernames)
@@ -449,6 +473,9 @@ function GuessPool({ names, allowedUsernames, variant = 'dark' }) {
   )
 }
 
+/**
+ * Render a lightweight empty state with optional continue action.
+ */
 function EmptyGame({ title, message, onContinue, names, allowedUsernames }) {
   return (
     <section className="game-panel game-panel-empty">
@@ -464,6 +491,9 @@ function EmptyGame({ title, message, onContinue, names, allowedUsernames }) {
   )
 }
 
+/**
+ * Main play screen for daily puzzles.
+ */
 export default function Play() {
   const [params] = useSearchParams()
   const fallbackParams = new URLSearchParams(window.location.search)
@@ -629,6 +659,9 @@ export default function Play() {
   )
 }
 
+/**
+ * Classic game mode: activity profile guessing.
+ */
 function ClassicGame({
   puzzle,
   metrics,
@@ -809,6 +842,9 @@ function ClassicGame({
   )
 }
 
+/**
+ * Quotele game mode: unscramble quote + identify author.
+ */
 function QuoteleGame({
   puzzle,
   allowedUsernames,
@@ -957,6 +993,9 @@ function QuoteleGame({
   )
 }
 
+/**
+ * Statle game mode: match standout stats to a member.
+ */
 function StatleGame({
   puzzle,
   allowedUsernames,
@@ -1073,6 +1112,9 @@ function StatleGame({
   )
 }
 
+/**
+ * Mediale game mode: identify media poster with keyword.
+ */
 function MedialeGame({
   puzzle,
   allowedUsernames,

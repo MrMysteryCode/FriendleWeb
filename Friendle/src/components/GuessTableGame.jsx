@@ -17,6 +17,9 @@ const STOP_WORDS = new Set([
   "with",
 ]);
 
+/**
+ * Normalize names for loose string comparisons.
+ */
 function normalizeName(value) {
   return String(value || "")
     .trim()
@@ -52,6 +55,9 @@ function toProfiles(source) {
   return [];
 }
 
+/**
+ * Collect user profiles from various API payload shapes.
+ */
 function collectProfiles(puzzle) {
   const sources = [
     puzzle?.profiles,
@@ -78,6 +84,9 @@ function collectProfiles(puzzle) {
   return profiles;
 }
 
+/**
+ * Extract the primary answer name from a puzzle payload.
+ */
 function extractAnswerName(puzzle) {
   const direct = pickFirst(puzzle || {}, [
     "answer",
@@ -112,6 +121,9 @@ function extractAnswerName(puzzle) {
   return undefined;
 }
 
+/**
+ * Build a lookup map for userId/name matching.
+ */
 function buildUserIndex(puzzle, profiles) {
   const index = new Map();
   const addEntry = (id, name) => {
@@ -159,6 +171,9 @@ function buildUserIndex(puzzle, profiles) {
   return index;
 }
 
+/**
+ * Find a profile matching the guessed name.
+ */
 function findProfileByName(profiles, name) {
   if (!name) return undefined;
   const needle = normalizeName(name);
@@ -267,6 +282,9 @@ function formatValue(value, fallback = "?") {
   return String(value);
 }
 
+/**
+ * Generic comparison table for member-guessing games.
+ */
 export default function GuessTableGame({
   puzzle,
   gameKey,

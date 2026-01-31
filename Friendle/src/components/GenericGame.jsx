@@ -2,10 +2,16 @@ import { useMemo, useState } from "react";
 
 const MAX_GUESSES = 6;
 
+/**
+ * Normalize input for case-insensitive comparisons.
+ */
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+/**
+ * Collect possible answer strings from a puzzle payload.
+ */
 function extractAnswers(puzzle) {
   const answers = new Set();
   const pushValue = (value) => {
@@ -33,6 +39,9 @@ function extractAnswers(puzzle) {
   return Array.from(answers);
 }
 
+/**
+ * Render puzzle clues for generic game modes.
+ */
 function GameClues({ puzzle }) {
   const textClue =
     puzzle?.prompt ||
@@ -60,6 +69,9 @@ function GameClues({ puzzle }) {
   );
 }
 
+/**
+ * Generic text-guess game with answer reveal after max guesses.
+ */
 export default function GenericGame({ puzzle, gameKey, title, prompt }) {
   const [guess, setGuess] = useState("");
   const [guessCount, setGuessCount] = useState(0);
