@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchLatestPuzzles } from '../api/friendleApi'
 import MedialeCanvas from '../components/MedialeCanvas'
 
@@ -501,6 +501,7 @@ export default function Play() {
   const initialGame = normalizeGameKey(
     params.get('game') || fallbackParams.get('game') || 'classic'
   )
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
@@ -569,6 +570,11 @@ export default function Play() {
     const idx = order.indexOf(gameKey)
     if (idx === -1 || idx >= order.length - 1) return
     setActiveTab(order[idx + 1])
+  }
+
+  const goHome = () => {
+    const target = guildId ? `/?guild=${encodeURIComponent(guildId)}` : '/'
+    navigate(target)
   }
 
   if (!guildId) {
@@ -650,7 +656,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onComplete={() => advanceToNext('statle')}
+              onComplete={goHome}
             />
           )}
         </div>
@@ -1036,7 +1042,6 @@ function StatleGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
-      if (onComplete) onComplete()
       return
     }
 

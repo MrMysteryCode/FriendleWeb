@@ -90,11 +90,23 @@ function App() {
           metrics: {
             title: 'Classic clue meanings',
             items: [
-              { label: 'Message count', text: 'How many messages the member sent in the source day.' },
-              { label: 'Top word', text: 'Most-used non‑common word in their messages.' },
-              { label: 'Active window', text: 'The time period they were most active (UTC buckets).' },
+              {
+                label: 'Message count',
+                text: 'How many messages the member sent in the source day.',
+              },
+              {
+                label: 'Top word',
+                text: 'Most-used non-common word in their messages.',
+              },
+              {
+                label: 'Active window',
+                text: 'The time period they were most active (UTC buckets).',
+              },
               { label: 'Mentions', text: 'How many users they mentioned.' },
-              { label: 'First message', text: 'Time bucket for their first message that day.' },
+              {
+                label: 'First message',
+                text: 'Time bucket for their first message that day.',
+              },
               { label: 'Account age', text: 'How old their Discord account is.' },
             ],
           },
@@ -133,85 +145,192 @@ function App() {
       },
     },
     {
-      code: 'en-GB',
-      label: 'English (UK)',
-      flag: 'gb',
-      flagName: 'United Kingdom',
-      htmlLang: 'en',
+      code: 'fr-FR',
+      label: 'Francais',
+      flag: 'fr',
+      flagName: 'France',
+      htmlLang: 'fr',
       strings: {
-        subtitle: { before: 'Guess your ', highlight: 'Friends', after: '' },
+        subtitle: { before: 'Devine tes ', highlight: 'Amis', after: '' },
         games: {
           classic: {
-            title: 'Classic',
+            title: 'Classique',
             description:
-              'Guess which server member matches the shown activity profile from yesterday (or the most recent day with activity).',
+              "Devine quel membre correspond au profil d'activite affiche d'hier (ou du jour le plus recent avec activite).",
           },
           quotele: {
             title: 'Quotele',
             description:
-              'Guess the original quote and who sent it, based on a scrambled version.',
+              'Identifie qui a envoye la citation melangee, avec pseudos et emojis retires.',
           },
           mediale: {
             title: 'Mediale',
             description:
-              'Reveal who posted the image or GIF as the media becomes clearer.',
+              "Decouvre qui a poste l'image ou le GIF a mesure qu'il se revele.",
           },
           statle: {
             title: 'Statle',
             description:
-              'Match a standout daily stat profile to the right server member.',
+              'Associe un profil de stats marquant du jour au bon membre.',
           },
         },
         how: {
-          title: 'How Friendle Works',
+          title: 'Comment fonctionne Friendle',
           body:
-            "Five daily mini-games powered by anonymized Discord activity from yesterday when available, or the most recent day with activity. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
+            "Cinq mini-jeux quotidiens bases sur l'activite Discord anonymisee d'hier quand elle est disponible, ou du jour le plus recent avec activite. Tout le monde voit le meme puzzle, avec de nouveaux indices apres chaque erreur.",
           metrics: {
-            title: 'Classic clue meanings',
+            title: 'Signification des indices du Classique',
             items: [
-              { label: 'Message count', text: 'How many messages the member sent in the source day.' },
-              { label: 'Top word', text: 'Most-used non‑common word in their messages.' },
-              { label: 'Active window', text: 'The time period they were most active (UTC buckets).' },
-              { label: 'Mentions', text: 'How many users they mentioned.' },
-              { label: 'First message', text: 'Time bucket for their first message that day.' },
-              { label: 'Account age', text: 'How old their Discord account is.' },
+              {
+                label: 'Nombre de messages',
+                text: 'Combien de messages le membre a envoyes ce jour-la.',
+              },
+              {
+                label: 'Mot principal',
+                text: 'Mot non courant le plus utilise dans ses messages.',
+              },
+              {
+                label: "Fenetre d'activite",
+                text: 'Periode ou il ou elle etait le plus actif (UTC).',
+              },
+              {
+                label: 'Mentions',
+                text: "Combien d'utilisateurs ont ete mentionnes.",
+              },
+              {
+                label: 'Premier message',
+                text: 'Plage horaire du premier message du jour.',
+              },
+              { label: 'Age du compte', text: 'Anciennete du compte Discord.' },
             ],
           },
           bullets: [
-            '6 guesses max per game.',
-            'Resets at a fixed server time.',
-            'No roles or sensitive data used.',
-            'Cache prevents re-scanning messages.',
+            '6 essais max par jeu.',
+            'Reinitialisation a une heure fixe.',
+            'Aucun role ou donnee sensible utilise.',
+            'Le cache evite de re-scanner les messages.',
           ],
-          action: 'Got it',
+          action: 'Compris',
         },
         language: {
-          title: 'Language',
-          prompt: 'Pick the language you wish to play in.',
-          label: 'Language',
-          action: 'Save',
+          title: 'Langue',
+          prompt: 'Choisis la langue dans laquelle tu veux jouer.',
+          label: 'Langue',
+          action: 'Enregistrer',
         },
         about: {
-          title: 'About the Creator',
+          title: 'A propos du createur',
           body:
-            "I'm the creator of Friendle. I built this game to celebrate daily Discord community moments while keeping member activity private. Friendle turns yesterday's activity into quick, fun puzzles so friends can compete and reconnect every day.",
-          action: 'Close',
+            "J'ai cree Friendle pour partager des moments Discord quotidiens de facon amusante.",
+          action: 'Fermer',
         },
         social: {
-          x: 'Follow on X',
-          about: 'About Friendle',
-          coffee: 'Buy me a coffee',
+          x: 'Suivre sur X',
+          about: 'A propos de Friendle',
+          coffee: "M'offrir un cafe",
         },
         footer: {
-          privacy: 'Privacy Policy',
+          privacy: 'Politique de confidentialite',
         },
         aria: {
-          settings: 'How Friendle works',
-          language: 'Choose language',
+          settings: 'Comment fonctionne Friendle',
+          language: 'Choisir la langue',
+        },
+      },
+    },
+    {
+      code: 'es-ES',
+      label: 'Espanol',
+      flag: 'es',
+      flagName: 'Spain',
+      htmlLang: 'es',
+      strings: {
+        subtitle: { before: 'Adivina a tus ', highlight: 'Amigos', after: '' },
+        games: {
+          classic: {
+            title: 'Clasico',
+            description:
+              'Adivina que miembro coincide con el perfil de actividad mostrado de ayer (o del dia mas reciente con actividad).',
+          },
+          quotele: {
+            title: 'Quotele',
+            description:
+              'Identifica quien envio la cita mezclada, con nombres de usuario y emojis eliminados.',
+          },
+          mediale: {
+            title: 'Mediale',
+            description:
+              'Descubre quien publico la imagen o GIF a medida que se aclara.',
+          },
+          statle: {
+            title: 'Statle',
+            description:
+              'Relaciona un perfil estadistico destacado del dia con el miembro correcto.',
+          },
+        },
+        how: {
+          title: 'Como funciona Friendle',
+          body:
+            'Cinco mini-juegos diarios basados en actividad de Discord anonimizada de ayer cuando sea posible, o del dia mas reciente con actividad. Todos ven el mismo rompecabezas, con nuevas pistas tras cada intento incorrecto.',
+          metrics: {
+            title: 'Significado de las pistas del Clasico',
+            items: [
+              {
+                label: 'Recuento de mensajes',
+                text: 'Cuantos mensajes envio el miembro ese dia.',
+              },
+              {
+                label: 'Palabra principal',
+                text: 'Palabra no comun mas usada en sus mensajes.',
+              },
+              {
+                label: 'Ventana activa',
+                text: 'Periodo en el que estuvo mas activo (UTC).',
+              },
+              { label: 'Menciones', text: 'Cuantos usuarios menciono.' },
+              {
+                label: 'Primer mensaje',
+                text: 'Franja horaria de su primer mensaje del dia.',
+              },
+              { label: 'Edad de la cuenta', text: 'Antiguedad de su cuenta de Discord.' },
+            ],
+          },
+          bullets: [
+            'Maximo 6 intentos por juego.',
+            'Se reinicia a una hora fija.',
+            'No se usan roles ni datos sensibles.',
+            'El cache evita reescanear mensajes.',
+          ],
+          action: 'Entendido',
+        },
+        language: {
+          title: 'Idioma',
+          prompt: 'Elige el idioma en el que quieres jugar.',
+          label: 'Idioma',
+          action: 'Guardar',
+        },
+        about: {
+          title: 'Sobre el creador',
+          body:
+            'Cree Friendle para compartir momentos diarios de Discord de forma divertida.',
+          action: 'Cerrar',
+        },
+        social: {
+          x: 'Seguir en X',
+          about: 'Sobre Friendle',
+          coffee: 'Invitame un cafe',
+        },
+        footer: {
+          privacy: 'Politica de privacidad',
+        },
+        aria: {
+          settings: 'Como funciona Friendle',
+          language: 'Elegir idioma',
         },
       },
     },
   ]
+
 
   const currentLanguage =
     languageOptions.find((option) => option.code === language) || languageOptions[0]
@@ -308,165 +427,8 @@ function App() {
       icon: 'finance',
       description: copy.games.statle.description,
     },
-    {
-      code: 'es-ES',
-      label: 'Español',
-      flag: 'es',
-      flagName: 'Spain',
-      htmlLang: 'es',
-      strings: {
-        subtitle: { before: 'Adivina a tus ', highlight: 'Amigos', after: '' },
-        games: {
-          classic: {
-            title: 'Clásico',
-            description:
-              'Adivina qué miembro coincide con el perfil de actividad mostrado.',
-          },
-          quotele: {
-            title: 'Quotele',
-            description:
-              'Identifica quién envió la cita mezclada (usuarios y emojis ocultos).',
-          },
-          mediale: {
-            title: 'Mediale',
-            description:
-              'Descubre quién publicó la imagen o GIF a medida que se aclara.',
-          },
-          statle: {
-            title: 'Statle',
-            description:
-              'Relaciona un perfil de estadísticas destacado con el miembro correcto.',
-          },
-        },
-        how: {
-          title: 'Cómo funciona Friendle',
-          body:
-            'Cinco mini‑juegos diarios con actividad anonimizada. Todos ven el mismo puzzle.',
-          metrics: {
-            title: 'Significado de las pistas',
-            items: [
-              { label: 'Message count', text: 'Cantidad de mensajes enviados.' },
-              { label: 'Top word', text: 'Palabra no común más usada.' },
-              { label: 'Active window', text: 'Franja horaria más activa (UTC).' },
-              { label: 'Mentions', text: 'Usuarios mencionados.' },
-              { label: 'First message', text: 'Hora del primer mensaje.' },
-              { label: 'Account age', text: 'Antigüedad de la cuenta.' },
-            ],
-          },
-          bullets: [
-            'Máximo 6 intentos por juego.',
-            'Se reinicia a una hora fija.',
-            'No se usan roles ni datos sensibles.',
-            'El caché evita re‑escanear mensajes.',
-          ],
-          action: 'Entendido',
-        },
-        language: {
-          title: 'Idioma',
-          prompt: 'Elige el idioma en el que quieres jugar.',
-          label: 'Idioma',
-          action: 'Guardar',
-        },
-        about: {
-          title: 'Sobre el creador',
-          body:
-            'Creé Friendle para compartir momentos diarios de Discord de forma divertida.',
-          action: 'Cerrar',
-        },
-        social: {
-          x: 'Seguir en X',
-          about: 'Sobre Friendle',
-          coffee: 'Invítame un café',
-        },
-        footer: {
-          privacy: 'Política de privacidad',
-        },
-        aria: {
-          settings: 'Cómo funciona Friendle',
-          language: 'Elegir idioma',
-        },
-      },
-    },
-    {
-      code: 'fr-FR',
-      label: 'Français',
-      flag: 'fr',
-      flagName: 'France',
-      htmlLang: 'fr',
-      strings: {
-        subtitle: { before: 'Devine tes ', highlight: 'Amis', after: '' },
-        games: {
-          classic: {
-            title: 'Classique',
-            description:
-              "Devine quel membre correspond au profil d'activité affiché.",
-          },
-          quotele: {
-            title: 'Quotele',
-            description:
-              'Identifie qui a envoyé la citation mélangée (utilisateurs/émojis masqués).',
-          },
-          mediale: {
-            title: 'Mediale',
-            description:
-              "Découvre qui a posté l'image ou le GIF à mesure qu'il se révèle.",
-          },
-          statle: {
-            title: 'Statle',
-            description:
-              'Associe un profil de stats marquant au bon membre.',
-          },
-        },
-        how: {
-          title: 'Comment fonctionne Friendle',
-          body:
-            "Cinq mini‑jeux quotidiens basés sur l'activité anonymisée. Tout le monde voit le même puzzle.",
-          metrics: {
-            title: 'Signification des indices',
-            items: [
-              { label: 'Message count', text: 'Nombre de messages envoyés.' },
-              { label: 'Top word', text: 'Mot non commun le plus utilisé.' },
-              { label: 'Active window', text: "Période la plus active (UTC)." },
-              { label: 'Mentions', text: 'Utilisateurs mentionnés.' },
-              { label: 'First message', text: 'Heure du premier message.' },
-              { label: 'Account age', text: 'Âge du compte.' },
-            ],
-          },
-          bullets: [
-            '6 essais max par jeu.',
-            'Réinitialisation à heure fixe.',
-            'Aucun rôle ni donnée sensible.',
-            'Le cache évite de rescanner les messages.',
-          ],
-          action: 'Compris',
-        },
-        language: {
-          title: 'Langue',
-          prompt: 'Choisis la langue de jeu.',
-          label: 'Langue',
-          action: 'Enregistrer',
-        },
-        about: {
-          title: 'À propos du créateur',
-          body:
-            "J'ai créé Friendle pour partager des moments Discord quotidiens.",
-          action: 'Fermer',
-        },
-        social: {
-          x: 'Suivre sur X',
-          about: 'À propos de Friendle',
-          coffee: 'M’offrir un café',
-        },
-        footer: {
-          privacy: 'Politique de confidentialité',
-        },
-        aria: {
-          settings: 'Comment fonctionne Friendle',
-          language: 'Choisir la langue',
-        },
-      },
-    },
   ]
+
 
   return (
     <div className="page">
@@ -485,9 +447,6 @@ function App() {
             </button>
             <h1>Friendle</h1>
             <div className="lang-row">
-              {resetCountdown && (
-                <span className="date-badge">Resets in {resetCountdown}</span>
-              )}
               <button
                 className="flag-link"
                 type="button"
@@ -500,6 +459,9 @@ function App() {
                   alt={`${currentLanguage.flagName} flag`}
                 />
               </button>
+              {resetCountdown && (
+                <span className="date-badge">Resets in {resetCountdown}</span>
+              )}
             </div>
           </div>
           <p className="hero-subtitle">
