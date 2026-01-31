@@ -207,8 +207,11 @@ function buildNameLookup(names = {}) {
 /**
  * Build a set of allowed usernames (and their IDs) for validation.
  */
-function buildAllowedUsernames(allowed = [], names = {}) {
+function buildAllowedUsernames(allowed = [], names = {}, options = {}) {
   const list = Array.isArray(allowed) && allowed.length ? allowed : Object.values(names)
+  if (options.strict && (!Array.isArray(allowed) || allowed.length === 0)) {
+    return new Set()
+  }
   const allowedSet = new Set()
   const nameToId = new Map()
   Object.entries(names).forEach(([userId, displayName]) => {
@@ -239,7 +242,8 @@ function buildAllowedUsernames(allowed = [], names = {}) {
 
 function buildGuessPool(names = {}, allowedSet) {
   const items = Object.values(names).filter(Boolean)
-  if (!allowedSet || allowedSet.size === 0) return items
+  if (!allowedSet) return items
+  if (allowedSet.size === 0) return []
   return items.filter((name) => allowedSet.has(normalizeUserToken(name)))
 }
 
@@ -468,12 +472,12 @@ function GuessHistory({ guesses }) {
 /**
  * Render a collapsible pool of possible guesses.
  */
-function GuessPool({ names, allowedUsernames, variant = 'dark' }) {
+function GuessPool({ names, guessPoolUsernames, variant = 'dark' }) {
   const pool = useMemo(() => {
-    const list = buildGuessPool(names, allowedUsernames)
+    const list = buildGuessPool(names, guessPoolUsernames)
     const unique = Array.from(new Set(list))
     return unique.sort((a, b) => a.localeCompare(b))
-  }, [names, allowedUsernames])
+  }, [names, guessPoolUsernames])
 
   if (!pool.length) return null
 
@@ -494,12 +498,12 @@ function GuessPool({ names, allowedUsernames, variant = 'dark' }) {
 /**
  * Render a lightweight empty state with optional continue action.
  */
-function EmptyGame({ title, message, onContinue, names, allowedUsernames }) {
+function EmptyGame({ title, message, onContinue, names, guessPoolUsernames }) {
   return (
     <section className="game-panel game-panel-empty">
       <h3>{title}</h3>
       <p className="game-status">{message}</p>
-      <GuessPool names={names} allowedUsernames={allowedUsernames} variant="light" />
+      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} variant="light" />
       {onContinue && (
         <button className="ghost-button continue-button" type="button" onClick={onContinue}>
           Continue
@@ -598,6 +602,10 @@ export default function Play() {
     () => buildAllowedUsernames(allowedFromPayload, names),
     [allowedFromPayload, names]
   )
+  const optedInUsernames = useMemo(
+    () => buildAllowedUsernames(allowedFromPayload, names, { strict: true }),
+    [allowedFromPayload, names]
+  )
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
   const dateLabel = data?.date || data?.metadata?.date || ''
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
@@ -605,20 +613,10 @@ export default function Play() {
 
   const trackGameCompletion = (gameKey) => {
     if (!dateLabel || !gameKey) return
-    const completedKey = `friendle:stats:completed:${dateLabel}`
-    const raw = localStorage.getItem(completedKey)
-    const stored = raw ? JSON.parse(raw) : []
-    const completed = new Set(Array.isArray(stored) ? stored : [])
-    completed.add(gameKey)
-    localStorage.setItem(completedKey, JSON.stringify(Array.from(completed)))
-
-    const allGames = ['classic', 'quotele', 'mediale', 'statle']
-    const hasAll = allGames.every((key) => completed.has(key))
-    if (!hasAll) return
-
-    const firedKey = `friendle:stats:completed:${dateLabel}:sent`
-    if (localStorage.getItem(firedKey)) return
-    localStorage.setItem(firedKey, '1')
+    const scope = guildId || 'global'
+    const guardKey = `friendle:stats:correct:${scope}:${dateLabel}:${gameKey}`
+    if (localStorage.getItem(guardKey)) return
+    localStorage.setItem(guardKey, '1')
     postStatsEvent('guess_correct')
   }
 
@@ -705,6 +703,7 @@ export default function Play() {
               puzzle={classicPuzzle}
               metrics={metrics}
               allowedUsernames={allowedUsernames}
+              guessPoolUsernames={optedInUsernames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -719,6 +718,7 @@ export default function Play() {
             <QuoteleGame
               puzzle={puzzles.quotele}
               allowedUsernames={allowedUsernames}
+              guessPoolUsernames={optedInUsernames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -733,6 +733,7 @@ export default function Play() {
             <MedialeGame
               puzzle={puzzles.mediale}
               allowedUsernames={allowedUsernames}
+              guessPoolUsernames={optedInUsernames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -747,6 +748,7 @@ export default function Play() {
             <StatleGame
               puzzle={puzzles.statle}
               allowedUsernames={allowedUsernames}
+              guessPoolUsernames={optedInUsernames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -770,6 +772,7 @@ function ClassicGame({
   puzzle,
   metrics,
   allowedUsernames,
+  guessPoolUsernames,
   guildId,
   date,
   resetSeed,
@@ -850,7 +853,7 @@ function ClassicGame({
         message="No Classic puzzle available."
         onContinue={onComplete}
         names={names}
-        allowedUsernames={allowedUsernames}
+        guessPoolUsernames={guessPoolUsernames}
       />
     )
   }
@@ -993,7 +996,7 @@ function ClassicGame({
           label: row.name,
         }))}
       />
-      <GuessPool names={names} allowedUsernames={allowedUsernames} />
+      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
     </section>
   )
 }
@@ -1004,6 +1007,7 @@ function ClassicGame({
 function QuoteleGame({
   puzzle,
   allowedUsernames,
+  guessPoolUsernames,
   guildId,
   date,
   resetSeed,
@@ -1131,7 +1135,7 @@ function QuoteleGame({
         message="No Quotele puzzle available."
         onContinue={onComplete}
         names={names}
-        allowedUsernames={allowedUsernames}
+        guessPoolUsernames={guessPoolUsernames}
       />
     )
   }
@@ -1198,7 +1202,7 @@ function QuoteleGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} allowedUsernames={allowedUsernames} />
+      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
     </section>
   )
 }
@@ -1209,6 +1213,7 @@ function QuoteleGame({
 function StatleGame({
   puzzle,
   allowedUsernames,
+  guessPoolUsernames,
   guildId,
   date,
   resetSeed,
@@ -1274,7 +1279,7 @@ function StatleGame({
         message="No Statle puzzle available."
         onContinue={onComplete}
         names={names}
-        allowedUsernames={allowedUsernames}
+        guessPoolUsernames={guessPoolUsernames}
       />
     )
   }
@@ -1324,7 +1329,7 @@ function StatleGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} allowedUsernames={allowedUsernames} />
+      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
     </section>
   )
 }
@@ -1335,6 +1340,7 @@ function StatleGame({
 function MedialeGame({
   puzzle,
   allowedUsernames,
+  guessPoolUsernames,
   guildId,
   date,
   resetSeed,
@@ -1361,7 +1367,12 @@ function MedialeGame({
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
   const solutionName = puzzle?.solution_user_name || resolveDisplayName(solutionId)
-  const mediaUrl = puzzle?.media?.url
+  const mediaUrl =
+    puzzle?.media?.url ||
+    puzzle?.media?.proxy_url ||
+    puzzle?.media_url ||
+    puzzle?.mediaUrl ||
+    puzzle?.media?.source_url
   const allowValidation = allowedUsernames && allowedUsernames.size > 0
 
   const pixelSteps = [36, 28, 20, 14, 10, 6]
@@ -1413,7 +1424,7 @@ function MedialeGame({
         message="No Mediale puzzle available."
         onContinue={onComplete}
         names={names}
-        allowedUsernames={allowedUsernames}
+        guessPoolUsernames={guessPoolUsernames}
       />
     )
   }
@@ -1455,7 +1466,7 @@ function MedialeGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} allowedUsernames={allowedUsernames} />
+      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
     </section>
   )
 }
