@@ -397,10 +397,7 @@ function App() {
 
     const loadStats = async () => {
       try {
-        const url = guildId
-          ? `${statsEndpoint}?guild_id=${encodeURIComponent(guildId)}`
-          : statsEndpoint
-        const res = await fetch(url)
+        const res = await fetch(statsEndpoint)
         if (!res.ok) return
         const data = await res.json()
         if (cancelled) return
@@ -426,7 +423,7 @@ function App() {
       cancelled = true
       clearInterval(interval)
     }
-  }, [statsEndpoint, guildId])
+  }, [statsEndpoint])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)

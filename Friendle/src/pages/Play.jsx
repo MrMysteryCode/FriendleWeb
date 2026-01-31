@@ -12,14 +12,14 @@ function getApiBase() {
   return base ? base.replace(/\/$/, '') : ''
 }
 
-async function postStatsEvent(type, guildId) {
+async function postStatsEvent(type) {
   const apiBase = getApiBase()
-  if (!apiBase || !guildId) return
+  if (!apiBase) return
   try {
     await fetch(`${apiBase}/stats/event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, guild_id: guildId, latest: true }),
+      body: JSON.stringify({ type, latest: true }),
     })
   } catch {
     // ignore
@@ -572,12 +572,23 @@ export default function Play() {
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
   const classicPuzzle = puzzles.classic || puzzles.friendle_daily || puzzles.friendle || null
 
-  const trackCorrectGuess = (gameKey) => {
-    if (!guildId || !dateLabel || !gameKey) return
-    const key = `friendle:stats:guess_correct:${guildId}:${dateLabel}:${gameKey}`
-    if (localStorage.getItem(key)) return
-    localStorage.setItem(key, '1')
-    postStatsEvent('guess_correct', guildId)
+  const trackGameCompletion = (gameKey) => {
+    if (!dateLabel || !gameKey) return
+    const completedKey = `friendle:stats:completed:${dateLabel}`
+    const raw = localStorage.getItem(completedKey)
+    const stored = raw ? JSON.parse(raw) : []
+    const completed = new Set(Array.isArray(stored) ? stored : [])
+    completed.add(gameKey)
+    localStorage.setItem(completedKey, JSON.stringify(Array.from(completed)))
+
+    const allGames = ['classic', 'quotele', 'mediale', 'statle']
+    const hasAll = allGames.every((key) => completed.has(key))
+    if (!hasAll) return
+
+    const firedKey = `friendle:stats:completed:${dateLabel}:sent`
+    if (localStorage.getItem(firedKey)) return
+    localStorage.setItem(firedKey, '1')
+    postStatsEvent('guess_correct')
   }
 
   const resolveGuess = (displayName) =>
@@ -602,14 +613,12 @@ export default function Play() {
   }
 
   useEffect(() => {
-    if (!guildId || status !== 'ready') return
-    const viewKey = dateLabel
-      ? `friendle:stats:view:${guildId}:${dateLabel}`
-      : `friendle:stats:view:${guildId}`
+    if (status !== 'ready') return
+    const viewKey = dateLabel ? `friendle:stats:view:${dateLabel}` : 'friendle:stats:view'
     if (sessionStorage.getItem(viewKey)) return
     sessionStorage.setItem(viewKey, '1')
-    postStatsEvent('view', guildId)
-  }, [guildId, status, dateLabel])
+    postStatsEvent('view')
+  }, [status, dateLabel])
 
   if (!guildId) {
     return (
@@ -654,7 +663,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackCorrectGuess('classic')}
+              onCorrect={() => trackGameCompletion('classic')}
               onComplete={() => advanceToNext('classic')}
             />
           )}
@@ -667,7 +676,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackCorrectGuess('quotele')}
+              onCorrect={() => trackGameCompletion('quotele')}
               onComplete={() => advanceToNext('quotele')}
             />
           )}
@@ -680,7 +689,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackCorrectGuess('mediale')}
+              onCorrect={() => trackGameCompletion('mediale')}
               onComplete={() => advanceToNext('mediale')}
             />
           )}
@@ -693,7 +702,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackCorrectGuess('statle')}
+              onCorrect={() => trackGameCompletion('statle')}
               onComplete={goHome}
             />
           )}
@@ -1105,11 +1114,13 @@ function QuoteleGame({
         </p>
       )}
       {isComplete && (
-        <p className="game-status answer-text answer-reveal">Answer: {solutionName}</p>
-      )}
-      {isComplete && (puzzle?.quote_original || puzzle?.quote) && (
-        <div className="quote-block answer-reveal">
-          <p className="quote-text">{puzzle?.quote_original || puzzle?.quote}</p>
+        <div className="game-status answer-reveal">
+          <p className="answer-text">Answer: {solutionName}</p>
+          {(puzzle?.quote_original_raw || puzzle?.quote_original || puzzle?.quote) && (
+            <p className="quote-reveal">
+              {puzzle?.quote_original_raw || puzzle?.quote_original || puzzle?.quote}
+            </p>
+          )}
         </div>
       )}
       {isComplete && onComplete && (

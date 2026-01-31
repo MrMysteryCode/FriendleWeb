@@ -471,6 +471,12 @@ body {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.quote-reveal {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
 .guess-table {
   display: grid;
   gap: 8px;
@@ -532,6 +538,29 @@ body {
 .guess-cell-unknown {
   background: var(--neutral);
   color: #ffffff;
+}
+
+.guess-cell.cell-correct,
+.guess-cell.cell-close,
+.guess-cell.cell-wrong,
+.guess-cell.cell-unknown {
+  color: #ffffff;
+}
+
+.guess-cell.cell-correct {
+  background: var(--success);
+}
+
+.guess-cell.cell-close {
+  background: var(--warning);
+}
+
+.guess-cell.cell-wrong {
+  background: var(--danger);
+}
+
+.guess-cell.cell-unknown {
+  background: var(--neutral);
 }
 
 @media (max-width: 900px) {
@@ -1130,6 +1159,12 @@ body {
   text-align: center;
 }
 
+.metrics-row.metrics-header span {
+  background: rgba(47, 106, 214, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+}
+
 .guess-input {
   display: grid;
   gap: 10px;
@@ -1223,8 +1258,8 @@ body {
 }
 
 .guess-table .metrics-header span {
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   font-weight: 700;
