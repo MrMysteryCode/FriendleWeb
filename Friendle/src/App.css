@@ -792,6 +792,46 @@ body {
   gap: 16px;
 }
 
+.game-panel-empty {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.game-panel-empty .game-status {
+  color: rgba(15, 23, 42, 0.8);
+}
+
+.game-panel-empty .ghost-button {
+  color: var(--ink);
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.game-panel-empty .ghost-button:hover {
+  border-color: rgba(15, 23, 42, 0.35);
+}
+
+.game-panel-empty .game-tag {
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.guess-pool {
+  display: grid;
+  gap: 10px;
+}
+
+.guess-pool summary {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+.guess-pool-light summary {
+  color: rgba(15, 23, 42, 0.8);
+}
+
 .metrics-table {
   display: grid;
   gap: 6px;

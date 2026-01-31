@@ -179,6 +179,12 @@ function buildAllowedUsernames(allowed = [], names = {}) {
   return allowedSet
 }
 
+function buildGuessPool(names = {}, allowedSet) {
+  const items = Object.values(names).filter(Boolean)
+  if (!allowedSet || allowedSet.size === 0) return items
+  return items.filter((name) => allowedSet.has(normalizeUserToken(name)))
+}
+
 function formatStatLabel(key) {
   return key
     .replace(/_/g, ' ')
@@ -406,6 +412,44 @@ function GuessHistory({ guesses }) {
   )
 }
 
+function GuessPool({ names, allowedUsernames, variant = 'dark' }) {
+  const pool = useMemo(() => {
+    const list = buildGuessPool(names, allowedUsernames)
+    const unique = Array.from(new Set(list))
+    return unique.sort((a, b) => a.localeCompare(b))
+  }, [names, allowedUsernames])
+
+  if (!pool.length) return null
+
+  return (
+    <details className={`guess-pool ${variant === 'light' ? 'guess-pool-light' : ''}`}>
+      <summary>Possible guesses ({pool.length})</summary>
+      <div className="game-tags">
+        {pool.map((name) => (
+          <span className="game-tag" key={name}>
+            {name}
+          </span>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function EmptyGame({ title, message, onContinue, names, allowedUsernames }) {
+  return (
+    <section className="game-panel game-panel-empty">
+      <h3>{title}</h3>
+      <p className="game-status">{message}</p>
+      <GuessPool names={names} allowedUsernames={allowedUsernames} variant="light" />
+      {onContinue && (
+        <button className="ghost-button" type="button" onClick={onContinue}>
+          Continue
+        </button>
+      )}
+    </section>
+  )
+}
+
 export default function Play() {
   const [params] = useSearchParams()
   const fallbackParams = new URLSearchParams(window.location.search)
@@ -523,6 +567,7 @@ export default function Play() {
               date={dateLabel}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
+              names={names}
               onComplete={() => advanceToNext('classic')}
             />
           )}
@@ -534,6 +579,7 @@ export default function Play() {
               date={dateLabel}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
+              names={names}
               onComplete={() => advanceToNext('quotele')}
             />
           )}
@@ -545,6 +591,7 @@ export default function Play() {
               date={dateLabel}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
+              names={names}
               onComplete={() => advanceToNext('mediale')}
             />
           )}
@@ -556,6 +603,7 @@ export default function Play() {
               date={dateLabel}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
+              names={names}
               onComplete={() => advanceToNext('statle')}
             />
           )}
@@ -573,6 +621,7 @@ function ClassicGame({
   date,
   resolveGuess,
   resolveDisplayName,
+  names,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -627,7 +676,6 @@ function ClassicGame({
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
-      if (onComplete) onComplete()
       return
     }
 
@@ -641,7 +689,15 @@ function ClassicGame({
   }
 
   if (!puzzle) {
-    return <p className="game-status">No Classic puzzle available.</p>
+    return (
+      <EmptyGame
+        title="Classic"
+        message="No Classic puzzle available."
+        onContinue={onComplete}
+        names={names}
+        allowedUsernames={allowedUsernames}
+      />
+    )
   }
 
   return (
@@ -683,6 +739,11 @@ function ClassicGame({
         Clear guesses
       </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && onComplete && (
+        <button className="ghost-button" type="button" onClick={onComplete}>
+          Continue
+        </button>
+      )}
 
       <div className="guess-table">
         <div className="guess-row metrics-header">
@@ -724,6 +785,7 @@ function ClassicGame({
           label: row.name,
         }))}
       />
+      <GuessPool names={names} allowedUsernames={allowedUsernames} />
     </section>
   )
 }
@@ -735,6 +797,7 @@ function QuoteleGame({
   date,
   resolveGuess,
   resolveDisplayName,
+  names,
   onComplete,
 }) {
   const [quoteInput, setQuoteInput] = useState('')
@@ -791,7 +854,6 @@ function QuoteleGame({
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
-      if (onComplete) onComplete()
       return
     }
 
@@ -812,7 +874,15 @@ function QuoteleGame({
   }
 
   if (!puzzle) {
-    return <p className="game-status">No Quotele puzzle available.</p>
+    return (
+      <EmptyGame
+        title="Quotele"
+        message="No Quotele puzzle available."
+        onContinue={onComplete}
+        names={names}
+        allowedUsernames={allowedUsernames}
+      />
+    )
   }
 
   return (
@@ -844,8 +914,14 @@ function QuoteleGame({
         Clear guesses
       </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && onComplete && (
+        <button className="ghost-button" type="button" onClick={onComplete}>
+          Continue
+        </button>
+      )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
+      <GuessPool names={names} allowedUsernames={allowedUsernames} />
     </section>
   )
 }
@@ -857,6 +933,7 @@ function StatleGame({
   date,
   resolveGuess,
   resolveDisplayName,
+  names,
   onComplete,
 }) {
   const [usernameInput, setUsernameInput] = useState('')
@@ -896,7 +973,6 @@ function StatleGame({
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
-      if (onComplete) onComplete()
       return
     }
 
@@ -910,7 +986,15 @@ function StatleGame({
   }
 
   if (!puzzle) {
-    return <p className="game-status">No Statle puzzle available.</p>
+    return (
+      <EmptyGame
+        title="Statle"
+        message="No Statle puzzle available."
+        onContinue={onComplete}
+        names={names}
+        allowedUsernames={allowedUsernames}
+      />
+    )
   }
 
   return (
@@ -942,8 +1026,14 @@ function StatleGame({
         Clear guesses
       </button>
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && onComplete && (
+        <button className="ghost-button" type="button" onClick={onComplete}>
+          Continue
+        </button>
+      )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
+      <GuessPool names={names} allowedUsernames={allowedUsernames} />
     </section>
   )
 }
@@ -955,6 +1045,7 @@ function MedialeGame({
   date,
   resolveGuess,
   resolveDisplayName,
+  names,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -1028,7 +1119,6 @@ function MedialeGame({
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
-      if (onComplete) onComplete()
       return
     }
 
@@ -1042,7 +1132,15 @@ function MedialeGame({
   }
 
   if (!puzzle) {
-    return <p className="game-status">No Mediale puzzle available.</p>
+    return (
+      <EmptyGame
+        title="Mediale"
+        message="No Mediale puzzle available."
+        onContinue={onComplete}
+        names={names}
+        allowedUsernames={allowedUsernames}
+      />
+    )
   }
 
   return (
@@ -1072,8 +1170,14 @@ function MedialeGame({
           <p>Accepted keywords: {keywords.length ? keywords.join(', ') : 'None'}</p>
         </div>
       )}
+      {isComplete && onComplete && (
+        <button className="ghost-button" type="button" onClick={onComplete}>
+          Continue
+        </button>
+      )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
+      <GuessPool names={names} allowedUsernames={allowedUsernames} />
     </section>
   )
 }
