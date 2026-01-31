@@ -87,11 +87,17 @@ function normalizeUserToken(value) {
 }
 
 function normalizeGameKey(value) {
-  const key = normalizeName(value)
-  if (!key) return 'classic'
-  if (key === 'friendle_daily' || key === 'daily' || key === 'classic') return 'classic'
-  if (['quotele', 'mediale', 'statle'].includes(key)) return key
-  return 'classic'
+  return normalizePuzzleKey(value) || 'classic'
+}
+
+function normalizePuzzleKey(value) {
+  const key = normalizeName(value).replace(/[\s_-]+/g, '')
+  if (!key) return null
+  if (['friendledaily', 'daily', 'classic', 'friendle'].includes(key)) return 'classic'
+  if (['quotele', 'quotedaily', 'quote'].includes(key)) return 'quotele'
+  if (['mediale', 'medial', 'mediadaily', 'media'].includes(key)) return 'mediale'
+  if (['statle', 'statledaily', 'stat', 'stats'].includes(key)) return 'statle'
+  return null
 }
 
 function normalizeQuote(value) {
@@ -533,14 +539,27 @@ export default function Play() {
   }, [initialGame])
 
   const puzzles = useMemo(() => {
-    const raw = data?.puzzles || {}
+    const raw = data?.puzzles
+    if (!raw || typeof raw !== 'object') return {}
     if (Array.isArray(raw)) {
       return raw.reduce((acc, puzzle) => {
-        if (puzzle?.game) acc[puzzle.game] = puzzle
+        const candidates = [puzzle?.game, puzzle?.key, puzzle?.type]
+        const normalized = candidates.map(normalizePuzzleKey).find(Boolean)
+        if (normalized) acc[normalized] = puzzle
         return acc
       }, {})
     }
-    return raw
+    return Object.entries(raw).reduce((acc, [key, puzzle]) => {
+      const normalized =
+        normalizePuzzleKey(key) ||
+        normalizePuzzleKey(puzzle?.game) ||
+        normalizePuzzleKey(puzzle?.key) ||
+        normalizePuzzleKey(puzzle?.type)
+      if (normalized) {
+        acc[normalized] = puzzle
+      }
+      return acc
+    }, {})
   }, [data?.puzzles])
   const names = data?.names || data?.metadata?.names || {}
   const metrics = data?.metrics || data?.metadata?.metrics || {}
@@ -554,7 +573,7 @@ export default function Play() {
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
   const dateLabel = data?.date || data?.metadata?.date || ''
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
-  const classicPuzzle = puzzles.friendle_daily || puzzles.classic || puzzles.friendle || null
+  const classicPuzzle = puzzles.classic || puzzles.friendle_daily || puzzles.friendle || null
 
   const resolveGuess = (displayName) =>
     resolveUserGuess(displayName, nameLookup, nameIndex, names)
