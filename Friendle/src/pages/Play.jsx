@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchLatestPuzzles } from '../api/friendleApi'
 import MedialeCanvas from '../components/MedialeCanvas'
@@ -616,14 +616,29 @@ export default function Play() {
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
   const classicPuzzle = puzzles.classic || puzzles.friendle_daily || puzzles.friendle || null
 
-  const trackGameCompletion = (gameKey) => {
-    if (!dateLabel || !gameKey) return
-    const scope = guildId || 'global'
-    const guardKey = `friendle:stats:correct:${scope}:${dateLabel}:${gameKey}`
-    if (localStorage.getItem(guardKey)) return
-    localStorage.setItem(guardKey, '1')
-    postStatsEvent('guess_correct')
-  }
+  const trackGameWin = useCallback(
+    (gameKey) => {
+      if (!dateLabel || !gameKey) return
+      const scope = guildId || 'global'
+      const guardKey = `friendle:stats:correct:${scope}:${dateLabel}:${gameKey}`
+      if (localStorage.getItem(guardKey)) return
+      localStorage.setItem(guardKey, '1')
+      postStatsEvent('guess_correct')
+    },
+    [dateLabel, guildId]
+  )
+
+  const trackGameCompletion = useCallback(
+    (gameKey) => {
+      if (!dateLabel || !gameKey) return
+      const scope = guildId || 'global'
+      const guardKey = `friendle:stats:completed:${scope}:${dateLabel}:${gameKey}`
+      if (localStorage.getItem(guardKey)) return
+      localStorage.setItem(guardKey, '1')
+      postStatsEvent('game_complete')
+    },
+    [dateLabel, guildId]
+  )
 
   const resolveGuess = (displayName) =>
     resolveUserGuess(displayName, nameLookup, nameIndex, names)
@@ -705,6 +720,7 @@ export default function Play() {
         <div className="play-content">
           {activeTab === 'classic' && (
             <ClassicGame
+              gameKey="classic"
               puzzle={classicPuzzle}
               metrics={metrics}
               allowedUsernames={allowedUsernames}
@@ -715,12 +731,14 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackGameCompletion('classic')}
+              onCorrect={trackGameWin}
+              onGameComplete={trackGameCompletion}
               onComplete={() => advanceToNext('classic')}
             />
           )}
           {activeTab === 'quotele' && (
             <QuoteleGame
+              gameKey="quotele"
               puzzle={puzzles.quotele}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
@@ -730,12 +748,14 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackGameCompletion('quotele')}
+              onCorrect={trackGameWin}
+              onGameComplete={trackGameCompletion}
               onComplete={() => advanceToNext('quotele')}
             />
           )}
           {activeTab === 'mediale' && (
             <MedialeGame
+              gameKey="mediale"
               puzzle={puzzles.mediale}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
@@ -745,12 +765,14 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackGameCompletion('mediale')}
+              onCorrect={trackGameWin}
+              onGameComplete={trackGameCompletion}
               onComplete={() => advanceToNext('mediale')}
             />
           )}
           {activeTab === 'statle' && (
             <StatleGame
+              gameKey="statle"
               puzzle={puzzles.statle}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
@@ -760,7 +782,8 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
-              onCorrect={() => trackGameCompletion('statle')}
+              onCorrect={trackGameWin}
+              onGameComplete={trackGameCompletion}
               onComplete={goHome}
             />
           )}
@@ -774,6 +797,7 @@ export default function Play() {
  * Classic game mode: activity profile guessing.
  */
 function ClassicGame({
+  gameKey = 'classic',
   puzzle,
   metrics,
   allowedUsernames,
@@ -785,6 +809,7 @@ function ClassicGame({
   resolveDisplayName,
   names,
   onCorrect,
+  onGameComplete,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -800,6 +825,11 @@ function ClassicGame({
     setGuessInput('')
     setMessage('')
   }, [resetSeed])
+
+  useEffect(() => {
+    if (!isComplete || !onGameComplete) return
+    onGameComplete(gameKey)
+  }, [isComplete, onGameComplete, gameKey])
 
   const solutionMetrics = puzzle?.solution_metrics || metrics?.[puzzle?.solution_user_id] || {}
   const solutionId = puzzle?.solution_user_id
@@ -838,7 +868,7 @@ function ClassicGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 
@@ -1010,6 +1040,7 @@ function ClassicGame({
  * Quotele game mode: unscramble quote + identify author.
  */
 function QuoteleGame({
+  gameKey = 'quotele',
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
@@ -1020,6 +1051,7 @@ function QuoteleGame({
   resolveDisplayName,
   names,
   onCorrect,
+  onGameComplete,
   onComplete,
 }) {
   const [quoteInput, setQuoteInput] = useState('')
@@ -1037,6 +1069,11 @@ function QuoteleGame({
     setUsernameInput('')
     setMessage('')
   }, [resetSeed])
+
+  useEffect(() => {
+    if (!isComplete || !onGameComplete) return
+    onGameComplete(gameKey)
+  }, [isComplete, onGameComplete, gameKey])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1095,21 +1132,21 @@ function QuoteleGame({
     if (userCorrect && quoteCorrect) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} sent the quote.`)
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 
     if (userCorrect && !hasQuote) {
       setStatus('won')
       setMessage('Username is correct. Quote was left empty.')
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 
     if (quoteCorrect && !hasUser) {
       setStatus('won')
       setMessage('Quote is correct. Username was left empty.')
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 
@@ -1216,6 +1253,7 @@ function QuoteleGame({
  * Statle game mode: match standout stats to a member.
  */
 function StatleGame({
+  gameKey = 'statle',
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
@@ -1226,6 +1264,7 @@ function StatleGame({
   resolveDisplayName,
   names,
   onCorrect,
+  onGameComplete,
   onComplete,
 }) {
   const [usernameInput, setUsernameInput] = useState('')
@@ -1241,6 +1280,11 @@ function StatleGame({
     setUsernameInput('')
     setMessage('')
   }, [resetSeed])
+
+  useEffect(() => {
+    if (!isComplete || !onGameComplete) return
+    onGameComplete(gameKey)
+  }, [isComplete, onGameComplete, gameKey])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1264,7 +1308,7 @@ function StatleGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 
@@ -1343,6 +1387,7 @@ function StatleGame({
  * Mediale game mode: identify media poster.
  */
 function MedialeGame({
+  gameKey = 'mediale',
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
@@ -1353,6 +1398,7 @@ function MedialeGame({
   resolveDisplayName,
   names,
   onCorrect,
+  onGameComplete,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -1368,6 +1414,11 @@ function MedialeGame({
     setGuessInput('')
     setMessage('')
   }, [resetSeed])
+
+  useEffect(() => {
+    if (!isComplete || !onGameComplete) return
+    onGameComplete(gameKey)
+  }, [isComplete, onGameComplete, gameKey])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1409,7 +1460,7 @@ function MedialeGame({
     if (correctUser) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} posted the media.`)
-      if (onCorrect) onCorrect()
+      if (onCorrect) onCorrect(gameKey)
       return
     }
 

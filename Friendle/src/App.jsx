@@ -49,7 +49,7 @@ function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
   const [resetCountdown, setResetCountdown] = useState('')
-  const [correctGuessCount, setCorrectGuessCount] = useState(0)
+  const [completedGameCount, setCompletedGameCount] = useState(0)
   const [reduceMotion, setReduceMotion] = useState(false)
   const [highContrast, setHighContrast] = useState(false)
   const [largeText, setLargeText] = useState(false)
@@ -350,8 +350,8 @@ function App() {
     (import.meta.env.VITE_API_URL
       ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/stats`
       : '')
-  const formattedCorrectCount = Number.isFinite(correctGuessCount)
-    ? correctGuessCount.toLocaleString()
+  const formattedCompletedCount = Number.isFinite(completedGameCount)
+    ? completedGameCount.toLocaleString()
     : '—'
   const playLink = (gameKey) => {
     const base = `/play?game=${encodeURIComponent(gameKey)}`
@@ -397,16 +397,18 @@ function App() {
       const res = await fetch(statsEndpoint)
       if (!res.ok) return
       const data = await res.json()
-      const guessedRaw =
-        data?.guessed_correctly ?? data?.correct ?? data?.correct_guesses ?? data?.correctCount
-      const guessedValue = Number(guessedRaw)
-      if (Number.isFinite(guessedValue)) {
-        setCorrectGuessCount(guessedValue)
-        return
-      }
-      const playedValue = Number(data?.played_all)
-      if (Number.isFinite(playedValue)) {
-        setCorrectGuessCount(playedValue)
+      const completedRaw =
+        data?.completed_games ??
+        data?.played_all ??
+        data?.games_completed ??
+        data?.active_players ??
+        data?.guessed_correctly ??
+        data?.correct ??
+        data?.correct_guesses ??
+        data?.correctCount
+      const completedValue = Number(completedRaw)
+      if (Number.isFinite(completedValue)) {
+        setCompletedGameCount(completedValue)
       }
     } catch {
       // ignore
@@ -524,8 +526,8 @@ function App() {
           <div className="title-row">
             <div className="title-controls">
               <span className="live-tracker" aria-live="polite">
-                <span className="tracker-count">{formattedCorrectCount}</span> people have guessed
-                correctly
+                <span className="tracker-count">{formattedCompletedCount}</span> people have completed
+                a game
               </span>
               <button
                 className="settings-link"
