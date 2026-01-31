@@ -14,6 +14,13 @@
   --stroke: rgba(15, 23, 42, 0.12);
   --title-blue: #2f6ad6;
   --title-blue-deep: #1f4fb5;
+  --surface-dark: #111827;
+  --surface-dark-2: #0f172a;
+  --surface-light: #ffffff;
+  --success: #6aaa64;
+  --warning: #c9b458;
+  --danger: #d24d57;
+  --neutral: #787c7e;
 }
 
 * {
@@ -54,7 +61,7 @@ body {
 }
 
 .hero h1 {
-  margin: 18px 0 0;
+  margin: 0;
   font-family: 'DynaPuff', 'Manrope', sans-serif;
   font-size: clamp(2.4rem, 4vw + 1rem, 4rem);
   line-height: 1.05;
@@ -92,23 +99,21 @@ body {
   width: 100%;
 }
 
+.title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  grid-column: 2;
+}
+
 .lang-row {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   justify-content: center;
-}
-
-.title-row h1 {
-  justify-self: center;
-}
-
-.settings-link {
-  justify-self: start;
-}
-
-.lang-row {
   justify-self: end;
+  grid-column: 3;
 }
 
 @media (max-width: 600px) {
@@ -117,8 +122,9 @@ body {
     justify-items: center;
   }
 
-  .settings-link,
+  .title-group,
   .lang-row {
+    grid-column: auto;
     justify-self: center;
   }
 }
@@ -217,7 +223,7 @@ body {
   width: min(520px, 100%);
   text-align: left;
   border-radius: 16px;
-  background: #111827;
+  background: var(--surface-dark);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
   transition: transform 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
@@ -290,7 +296,7 @@ body {
   width: min(720px, 100%);
   padding: 22px 24px;
   border-radius: 18px;
-  background: #111827;
+  background: var(--surface-dark);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
   display: grid;
@@ -358,6 +364,25 @@ body {
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 20px rgba(47, 106, 214, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.game-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(47, 106, 214, 0.35);
+}
+
+.game-submit:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.game-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: grayscale(0.2);
 }
 
 .game-tags {
@@ -445,6 +470,9 @@ body {
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
   text-align: center;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .guess-name {
@@ -453,23 +481,27 @@ body {
 }
 
 .guess-cell-correct {
-  background: rgba(34, 197, 94, 0.35);
-  border: 1px solid rgba(34, 197, 94, 0.5);
+  background: var(--success);
+  border: 1px solid var(--success);
+  color: #ffffff;
 }
 
 .guess-cell-partial {
-  background: rgba(251, 191, 36, 0.35);
-  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: var(--warning);
+  border: 1px solid var(--warning);
+  color: #ffffff;
 }
 
 .guess-cell-incorrect {
-  background: rgba(239, 68, 68, 0.35);
-  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: #ffffff;
 }
 
 .guess-cell-unknown {
-  background: rgba(148, 163, 184, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: var(--neutral);
+  border: 1px solid var(--neutral);
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {
@@ -492,14 +524,40 @@ body {
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
 .ghost-button:hover {
   border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.2);
+}
+
+.ghost-button:active {
+  transform: translateY(0);
+}
+
+.ghost-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.continue-button {
+  border: none;
+  background: linear-gradient(180deg, #7fcf7a, #4caf50);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(76, 175, 80, 0.35);
+}
+
+.continue-button:hover {
+  background: linear-gradient(180deg, #8fdb89, #57b85a);
+  box-shadow: 0 16px 30px rgba(76, 175, 80, 0.45);
 }
 
 .game-route-actions .modal-action,
@@ -555,7 +613,7 @@ body {
   display: grid;
   place-items: center;
   padding: 0;
-  background: #111827;
+  background: var(--surface-dark);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
   color: #ffffff;
@@ -680,6 +738,24 @@ body {
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 20px rgba(47, 106, 214, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.modal-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(47, 106, 214, 0.35);
+}
+
+.modal-action:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.modal-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 @media (max-width: 700px) {
@@ -769,6 +845,17 @@ body {
   font-weight: 700;
   text-decoration: none;
   box-shadow: 0 12px 24px rgba(47, 106, 214, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.play-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(47, 106, 214, 0.35);
+}
+
+.play-button:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 .play-page {
@@ -824,21 +911,23 @@ body {
   margin-top: 40px;
   padding: 24px;
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface-light);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
 
 .game-panel {
-  background: #111827;
+  background: var(--surface-dark);
   color: #ffffff;
   border-radius: 16px;
   padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
   display: grid;
   gap: 16px;
 }
 
 .game-panel-empty {
-  background: #ffffff;
+  background: var(--surface-light);
   color: var(--ink);
   border: 1px solid rgba(15, 23, 42, 0.12);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
@@ -851,10 +940,19 @@ body {
 .game-panel-empty .ghost-button {
   color: var(--ink);
   border-color: rgba(15, 23, 42, 0.2);
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .game-panel-empty .ghost-button:hover {
   border-color: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.game-panel-empty .continue-button {
+  color: #ffffff;
+  border: none;
+  background: linear-gradient(180deg, #7fcf7a, #4caf50);
+  box-shadow: 0 12px 24px rgba(76, 175, 80, 0.35);
 }
 
 .game-panel-empty .game-tag {
@@ -927,6 +1025,25 @@ body {
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 20px rgba(47, 106, 214, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.guess-input button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(47, 106, 214, 0.35);
+}
+
+.guess-input button:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.guess-input button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: grayscale(0.2);
 }
 
 .guess-table {
@@ -939,6 +1056,7 @@ body {
   display: grid;
   grid-template-columns: repeat(7, minmax(120px, 1fr));
   gap: 6px;
+  perspective: 800px;
 }
 
 .guess-row span {
@@ -949,23 +1067,57 @@ body {
 }
 
 .cell-correct {
-  background: rgba(34, 197, 94, 0.35);
-  border: 1px solid rgba(34, 197, 94, 0.5);
+  background: var(--success);
+  border: 1px solid var(--success);
+  color: #ffffff;
 }
 
 .cell-close {
-  background: rgba(251, 191, 36, 0.35);
-  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: var(--warning);
+  border: 1px solid var(--warning);
+  color: #ffffff;
 }
 
 .cell-wrong {
-  background: rgba(239, 68, 68, 0.35);
-  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: #ffffff;
 }
 
 .cell-unknown {
-  background: rgba(148, 163, 184, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: var(--neutral);
+  border: 1px solid var(--neutral);
+  color: #ffffff;
+}
+
+.cell-flip {
+  animation: wordleFlip 0.6s ease both;
+  transform-origin: center;
+}
+
+.answer-text {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.answer-reveal {
+  animation: wordleFlip 0.6s ease both;
+  transform-origin: center;
+}
+
+@keyframes wordleFlip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  45% {
+    transform: rotateX(90deg);
+  }
+  55% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
 }
 
 .quote-block {

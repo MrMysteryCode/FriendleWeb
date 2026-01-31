@@ -489,7 +489,7 @@ function EmptyGame({ title, message, onContinue, names, allowedUsernames }) {
       <p className="game-status">{message}</p>
       <GuessPool names={names} allowedUsernames={allowedUsernames} variant="light" />
       {onContinue && (
-        <button className="ghost-button" type="button" onClick={onContinue}>
+        <button className="ghost-button continue-button" type="button" onClick={onContinue}>
           Continue
         </button>
       )}
@@ -815,18 +815,20 @@ function ClassicGame({
       </div>
 
       <p className="game-status">{message}</p>
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
       {!isComplete && attempts >= 3 && solutionName && (
         <p className="game-status">Hint: Their username starts with {firstLetter(solutionName)}.</p>
       )}
-      {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && (
+        <p className="game-status answer-text answer-reveal">Answer: {solutionName}</p>
+      )}
       {isComplete && onComplete && (
-        <button className="ghost-button" type="button" onClick={onComplete}>
+        <button className="ghost-button continue-button" type="button" onClick={onComplete}>
           Continue
         </button>
       )}
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
 
       <div className="guess-table">
         <div className="guess-row metrics-header">
@@ -838,29 +840,73 @@ function ClassicGame({
           <span>First message</span>
           <span>Account age</span>
         </div>
-        {guesses.map((row, index) => (
-          <div key={`${row.userId}-${index}`} className="guess-row">
-            <span>{row.name}</span>
-            <span className={compareMessageCount(row.metrics?.messageCount, solutionMetrics?.messageCount)}>
-              {clampValue(row.metrics?.messageCount)}
-            </span>
-            <span className={compareString(row.metrics?.topWord, solutionMetrics?.topWord)}>
-              {clampValue(row.metrics?.topWord)}
-            </span>
-            <span className={compareActiveWindow(row.metrics?.activeWindow || 'Not active', solutionMetrics?.activeWindow)}>
-              {clampValue(row.metrics?.activeWindow || 'Not active')}
-            </span>
-            <span className={compareMentions(row.metrics?.mentions, solutionMetrics?.mentions)}>
-              {clampValue(row.metrics?.mentions)}
-            </span>
-            <span className={compareFirstBucket(row.metrics?.firstMessageBucket || 'Not active', solutionMetrics?.firstMessageBucket)}>
-              {clampValue(row.metrics?.firstMessageBucket || 'Not active')}
-            </span>
-            <span className={compareAccountAge(row.metrics?.accountAgeRange, solutionMetrics?.accountAgeRange)}>
-              {clampValue(row.metrics?.accountAgeRange)}
-            </span>
-          </div>
-        ))}
+        {guesses.map((row, index) => {
+          const isNewest = index === guesses.length - 1
+          const flipStyle = (delayIndex) =>
+            isNewest ? { animationDelay: `${delayIndex * 0.08}s` } : undefined
+          const flipClass = isNewest ? 'cell-flip' : ''
+          return (
+            <div key={`${row.userId}-${index}`} className="guess-row">
+              <span className={`guess-cell guess-name ${flipClass}`} style={flipStyle(0)}>
+                {row.name}
+              </span>
+              <span
+                className={`guess-cell ${compareMessageCount(
+                  row.metrics?.messageCount,
+                  solutionMetrics?.messageCount
+                )} ${flipClass}`}
+                style={flipStyle(1)}
+              >
+                {clampValue(row.metrics?.messageCount)}
+              </span>
+              <span
+                className={`guess-cell ${compareString(
+                  row.metrics?.topWord,
+                  solutionMetrics?.topWord
+                )} ${flipClass}`}
+                style={flipStyle(2)}
+              >
+                {clampValue(row.metrics?.topWord)}
+              </span>
+              <span
+                className={`guess-cell ${compareActiveWindow(
+                  row.metrics?.activeWindow || 'Not active',
+                  solutionMetrics?.activeWindow
+                )} ${flipClass}`}
+                style={flipStyle(3)}
+              >
+                {clampValue(row.metrics?.activeWindow || 'Not active')}
+              </span>
+              <span
+                className={`guess-cell ${compareMentions(
+                  row.metrics?.mentions,
+                  solutionMetrics?.mentions
+                )} ${flipClass}`}
+                style={flipStyle(4)}
+              >
+                {clampValue(row.metrics?.mentions)}
+              </span>
+              <span
+                className={`guess-cell ${compareFirstBucket(
+                  row.metrics?.firstMessageBucket || 'Not active',
+                  solutionMetrics?.firstMessageBucket
+                )} ${flipClass}`}
+                style={flipStyle(5)}
+              >
+                {clampValue(row.metrics?.firstMessageBucket || 'Not active')}
+              </span>
+              <span
+                className={`guess-cell ${compareAccountAge(
+                  row.metrics?.accountAgeRange,
+                  solutionMetrics?.accountAgeRange
+                )} ${flipClass}`}
+                style={flipStyle(6)}
+              >
+                {clampValue(row.metrics?.accountAgeRange)}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
       <GuessHistory
@@ -902,29 +948,48 @@ function QuoteleGame({
 
   const handleSubmit = async () => {
     if (isComplete) return
-    const guessInfo = resolveGuess(usernameInput)
-    if (!guessInfo.normalizedGuess || !quoteInput.trim()) return
+    const rawQuote = quoteInput.trim()
+    const rawUser = usernameInput.trim()
+    const hasQuote = Boolean(rawQuote)
+    const hasUser = Boolean(rawUser)
 
-    if (allowValidation && !isGuessAllowed(guessInfo, allowedUsernames)) {
-      setMessage('Not a valid member name for today.')
-      return
+    if (!hasQuote && !hasUser) return
+
+    const guessInfo = hasUser
+      ? resolveGuess(rawUser)
+      : { normalizedGuess: '', userId: '', displayName: rawUser }
+
+    if (hasUser) {
+      if (!guessInfo.normalizedGuess) {
+        setMessage('Not a valid member name for today.')
+        return
+      }
+      if (allowValidation && !isGuessAllowed(guessInfo, allowedUsernames)) {
+        setMessage('Not a valid member name for today.')
+        return
+      }
     }
 
-    const userId = guessInfo.userId
-    const quoteNormalized = normalizeQuote(quoteInput)
-    const quoteHash = await sha256Hex(quoteNormalized)
+    const quoteNormalized = hasQuote ? normalizeQuote(rawQuote) : ''
+    const quoteHash = hasQuote ? await sha256Hex(quoteNormalized) : ''
 
-    const userCorrect = isUserGuessMatch(
-      guessInfo,
-      solutionId,
-      puzzle?.solution_user_name
-    )
-    const quoteCorrect = quoteHash === puzzle?.quote_hash
+    const userCorrect = hasUser
+      ? isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)
+      : false
+    const quoteCorrect = hasQuote && quoteHash === puzzle?.quote_hash
+    const missingFields = []
+    if (!hasUser) missingFields.push('username')
+    if (!hasQuote) missingFields.push('quote')
+
+    const guessLabel = `${hasUser ? rawUser : 'username empty'} - ${
+      hasQuote ? (quoteCorrect ? 'quote ok' : 'quote no') : 'quote empty'
+    } / ${hasUser ? (userCorrect ? 'user ok' : 'user no') : 'user empty'}`
 
     addGuess({
-      label: `${usernameInput.trim()} - ${quoteCorrect ? 'quote ok' : 'quote no'} / ${userCorrect ? 'user ok' : 'user no'}`,
+      label: guessLabel,
       userCorrect,
       quoteCorrect,
+      missingFields,
     })
 
     setQuoteInput('')
@@ -936,9 +1001,26 @@ function QuoteleGame({
       return
     }
 
+    if (userCorrect && !hasQuote) {
+      setStatus('won')
+      setMessage('Username is correct. Quote was left empty.')
+      return
+    }
+
+    if (quoteCorrect && !hasUser) {
+      setStatus('won')
+      setMessage('Quote is correct. Username was left empty.')
+      return
+    }
+
     if (attempts + 1 >= MAX_GUESSES) {
       setStatus('lost')
       setMessage(`Out of guesses. Answer: ${solutionName}.`)
+      return
+    }
+
+    if (missingFields.length) {
+      setMessage(`You left the ${missingFields.join(' and ')} empty.`)
       return
     }
 
@@ -996,27 +1078,29 @@ function QuoteleGame({
       </div>
 
       <p className="game-status">{message}</p>
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
       {!isComplete && attempts >= 3 && (puzzle?.meta?.time_bucket || puzzle?.meta?.channel_category) && (
         <p className="game-status">
           Hint: {puzzle?.meta?.time_bucket ? `Sent in the ${puzzle.meta.time_bucket.toLowerCase()}` : ''}
-          {puzzle?.meta?.time_bucket && puzzle?.meta?.channel_category ? ' • ' : ''}
+          {puzzle?.meta?.time_bucket && puzzle?.meta?.channel_category ? ' - ' : ''}
           {puzzle?.meta?.channel_category ? `Channel category: ${puzzle.meta.channel_category}` : ''}
         </p>
       )}
-      {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && (
+        <p className="game-status answer-text answer-reveal">Answer: {solutionName}</p>
+      )}
       {isComplete && (puzzle?.quote_original || puzzle?.quote) && (
-        <div className="quote-block">
+        <div className="quote-block answer-reveal">
           <p className="quote-text">{puzzle?.quote_original || puzzle?.quote}</p>
         </div>
       )}
       {isComplete && onComplete && (
-        <button className="ghost-button" type="button" onClick={onComplete}>
+        <button className="ghost-button continue-button" type="button" onClick={onComplete}>
           Continue
         </button>
       )}
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />
@@ -1123,18 +1207,20 @@ function StatleGame({
       </div>
 
       <p className="game-status">{message}</p>
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
       {!isComplete && attempts >= 3 && solutionName && (
         <p className="game-status">Hint: Their username starts with {firstLetter(solutionName)}.</p>
       )}
-      {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && (
+        <p className="game-status answer-text answer-reveal">Answer: {solutionName}</p>
+      )}
       {isComplete && onComplete && (
-        <button className="ghost-button" type="button" onClick={onComplete}>
+        <button className="ghost-button continue-button" type="button" onClick={onComplete}>
           Continue
         </button>
       )}
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />
@@ -1269,23 +1355,23 @@ function MedialeGame({
       </div>
 
       <p className="game-status">{message}</p>
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
       {!isComplete && attempts >= 3 && keywords.length > 0 && (
         <p className="game-status">Hint: One keyword is “{keywords[0]}”.</p>
       )}
       {isComplete && (
-        <div className="game-status">
-          <p>Answer: {solutionName}</p>
+        <div className="game-status answer-reveal">
+          <p className="answer-text">Answer: {solutionName}</p>
           <p>Accepted keywords: {keywords.length ? keywords.join(', ') : 'None'}</p>
         </div>
       )}
       {isComplete && onComplete && (
-        <button className="ghost-button" type="button" onClick={onComplete}>
+        <button className="ghost-button continue-button" type="button" onClick={onComplete}>
           Continue
         </button>
       )}
+      <button className="ghost-button" type="button" onClick={handleReset}>
+        Clear guesses
+      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />

@@ -435,17 +435,19 @@ function App() {
       <header className="hero">
         <div className="brand">
           <div className="title-row">
-            <button
-              className="settings-link"
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              aria-label={copy.aria.settings}
-            >
-              <span className="settings-icon material-symbols-outlined" aria-hidden="true">
-                settings
-              </span>
-            </button>
-            <h1>Friendle</h1>
+            <div className="title-group">
+              <button
+                className="settings-link"
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                aria-label={copy.aria.settings}
+              >
+                <span className="settings-icon material-symbols-outlined" aria-hidden="true">
+                  settings
+                </span>
+              </button>
+              <h1>Friendle</h1>
+            </div>
             <div className="lang-row">
               <button
                 className="flag-link"
