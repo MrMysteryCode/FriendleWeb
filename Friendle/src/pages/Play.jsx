@@ -7,6 +7,25 @@ const MAX_GUESSES = 6
 const ACCOUNT_AGE_ORDER = ['Less than 1 year', '1-2 years', '2-4 years', '4+ years']
 const MIN_PARTIAL_MATCH = 3
 
+function getApiBase() {
+  const base = import.meta.env.VITE_API_URL || ''
+  return base ? base.replace(/\/$/, '') : ''
+}
+
+async function postStatsEvent(type, guildId) {
+  const apiBase = getApiBase()
+  if (!apiBase || !guildId) return
+  try {
+    await fetch(`${apiBase}/stats/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, guild_id: guildId, latest: true }),
+    })
+  } catch {
+    // ignore
+  }
+}
+
 function storageKey(guildId, date, game) {
   return `friendle:${guildId}:${date}:${game}`
 }
@@ -412,34 +431,6 @@ function isUserGuessMatch(guessInfo, solutionId, solutionName) {
   return false
 }
 
-function extractKeywordsFromUrl(url) {
-  if (!url) return []
-  const match = url.match(/\/view\/([^/]+?)-gif-/i)
-  if (!match) return []
-  const slug = match[1]
-  return slug
-    .split('-')
-    .map((token) => token.toLowerCase())
-    .filter((token) => token && token.length >= 3)
-    .filter((token) => !['gif', 'view', 'tenor'].includes(token))
-}
-
-function parseMedialeGuess(input) {
-  const raw = input.trim()
-  if (!raw) return { username: '', keyword: '' }
-
-  if (raw.includes('|')) {
-    const [userPart, keywordPart] = raw.split('|')
-    return {
-      username: userPart.trim(),
-      keyword: (keywordPart || '').trim(),
-    }
-  }
-
-  const [first, ...rest] = raw.split(/\s+/)
-  return { username: first, keyword: rest.join(' ') }
-}
-
 function GuessHistory({ guesses }) {
   if (!guesses.length) return null
   return (
@@ -581,6 +572,14 @@ export default function Play() {
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
   const classicPuzzle = puzzles.classic || puzzles.friendle_daily || puzzles.friendle || null
 
+  const trackCorrectGuess = (gameKey) => {
+    if (!guildId || !dateLabel || !gameKey) return
+    const key = `friendle:stats:guess_correct:${guildId}:${dateLabel}:${gameKey}`
+    if (localStorage.getItem(key)) return
+    localStorage.setItem(key, '1')
+    postStatsEvent('guess_correct', guildId)
+  }
+
   const resolveGuess = (displayName) =>
     resolveUserGuess(displayName, nameLookup, nameIndex, names)
 
@@ -601,6 +600,16 @@ export default function Play() {
     const target = guildId ? `/?guild=${encodeURIComponent(guildId)}` : '/'
     navigate(target)
   }
+
+  useEffect(() => {
+    if (!guildId || status !== 'ready') return
+    const viewKey = dateLabel
+      ? `friendle:stats:view:${guildId}:${dateLabel}`
+      : `friendle:stats:view:${guildId}`
+    if (sessionStorage.getItem(viewKey)) return
+    sessionStorage.setItem(viewKey, '1')
+    postStatsEvent('view', guildId)
+  }, [guildId, status, dateLabel])
 
   if (!guildId) {
     return (
@@ -645,6 +654,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
+              onCorrect={() => trackCorrectGuess('classic')}
               onComplete={() => advanceToNext('classic')}
             />
           )}
@@ -657,6 +667,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
+              onCorrect={() => trackCorrectGuess('quotele')}
               onComplete={() => advanceToNext('quotele')}
             />
           )}
@@ -669,6 +680,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
+              onCorrect={() => trackCorrectGuess('mediale')}
               onComplete={() => advanceToNext('mediale')}
             />
           )}
@@ -681,6 +693,7 @@ export default function Play() {
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
+              onCorrect={() => trackCorrectGuess('statle')}
               onComplete={goHome}
             />
           )}
@@ -702,6 +715,7 @@ function ClassicGame({
   resolveGuess,
   resolveDisplayName,
   names,
+  onCorrect,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -749,6 +763,7 @@ function ClassicGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} was the answer.`)
+      if (onCorrect) onCorrect()
       return
     }
 
@@ -930,6 +945,7 @@ function QuoteleGame({
   resolveGuess,
   resolveDisplayName,
   names,
+  onCorrect,
   onComplete,
 }) {
   const [quoteInput, setQuoteInput] = useState('')
@@ -998,18 +1014,21 @@ function QuoteleGame({
     if (userCorrect && quoteCorrect) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} sent the quote.`)
+      if (onCorrect) onCorrect()
       return
     }
 
     if (userCorrect && !hasQuote) {
       setStatus('won')
       setMessage('Username is correct. Quote was left empty.')
+      if (onCorrect) onCorrect()
       return
     }
 
     if (quoteCorrect && !hasUser) {
       setStatus('won')
       setMessage('Quote is correct. Username was left empty.')
+      if (onCorrect) onCorrect()
       return
     }
 
@@ -1119,6 +1138,7 @@ function StatleGame({
   resolveGuess,
   resolveDisplayName,
   names,
+  onCorrect,
   onComplete,
 }) {
   const [usernameInput, setUsernameInput] = useState('')
@@ -1151,6 +1171,7 @@ function StatleGame({
     if (isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} matches the stat.`)
+      if (onCorrect) onCorrect()
       return
     }
 
@@ -1229,7 +1250,7 @@ function StatleGame({
 }
 
 /**
- * Mediale game mode: identify media poster with keyword.
+ * Mediale game mode: identify media poster.
  */
 function MedialeGame({
   puzzle,
@@ -1239,6 +1260,7 @@ function MedialeGame({
   resolveGuess,
   resolveDisplayName,
   names,
+  onCorrect,
   onComplete,
 }) {
   const [guessInput, setGuessInput] = useState('')
@@ -1253,14 +1275,6 @@ function MedialeGame({
   const solutionId = puzzle?.solution_user_id
   const solutionName = puzzle?.solution_user_name || resolveDisplayName(solutionId)
   const mediaUrl = puzzle?.media?.url
-  const keywordSource = puzzle?.media?.source_url || mediaUrl
-  const mediaKeywords = Array.isArray(puzzle?.media?.keywords) ? puzzle.media.keywords : []
-  const keywords = Array.from(
-    new Set([
-      ...mediaKeywords.map((item) => normalizeName(item)),
-      ...extractKeywordsFromUrl(keywordSource),
-    ])
-  ).filter(Boolean)
   const allowValidation = allowedUsernames && allowedUsernames.size > 0
 
   const pixelSteps = [36, 28, 20, 14, 10, 6]
@@ -1269,9 +1283,8 @@ function MedialeGame({
 
   const handleSubmit = () => {
     if (isComplete) return
-    const parsed = parseMedialeGuess(guessInput)
-    const username = parsed.username
-    const keyword = parsed.keyword
+    const username = guessInput.trim()
+    if (!username) return
     const guessInfo = resolveGuess(username)
 
     if (!guessInfo.normalizedGuess) {
@@ -1284,27 +1297,16 @@ function MedialeGame({
       return
     }
 
-    const keywordNormalized = normalizeName(keyword)
-    const keywordOk =
-      keywords.length === 0 || keywords.some((token) => keywordNormalized.includes(token))
-
-    if (!keywordOk) {
-      setMessage('Your guess must include at least one keyword from the media link.')
-      return
-    }
-
-    const userId = guessInfo.userId
     const correctUser = isUserGuessMatch(guessInfo, solutionId, puzzle?.solution_user_name)
-    const guessLabel = keyword
-      ? `${guessInfo.displayName || username} - ${keyword}`
-      : guessInfo.displayName || username
+    const guessLabel = guessInfo.displayName || username
 
-    addGuess({ label: guessLabel, correctUser, keywordOk })
+    addGuess({ label: guessLabel, correctUser })
     setGuessInput('')
 
     if (correctUser) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} posted the media.`)
+      if (onCorrect) onCorrect()
       if (onComplete) onComplete()
       return
     }
@@ -1339,14 +1341,14 @@ function MedialeGame({
   return (
     <section className="game-panel">
       <h3>Mediale</h3>
-      <p className="game-status">Identify who posted the media and include a keyword from the link.</p>
+      <p className="game-status">Identify who posted the media.</p>
       <MedialeCanvas url={mediaUrl} pixelSize={pixelSize} reveal={reveal} />
 
       <div className="guess-input">
         <input
           value={guessInput}
           onChange={(event) => setGuessInput(event.target.value)}
-          placeholder="username or ID | keyword"
+          placeholder="username or ID"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -1355,13 +1357,9 @@ function MedialeGame({
       </div>
 
       <p className="game-status">{message}</p>
-      {!isComplete && attempts >= 3 && keywords.length > 0 && (
-        <p className="game-status">Hint: One keyword is “{keywords[0]}”.</p>
-      )}
       {isComplete && (
         <div className="game-status answer-reveal">
           <p className="answer-text">Answer: {solutionName}</p>
-          <p>Accepted keywords: {keywords.length ? keywords.join(', ') : 'None'}</p>
         </div>
       )}
       {isComplete && onComplete && (

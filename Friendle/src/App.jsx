@@ -49,6 +49,7 @@ function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
   const [resetCountdown, setResetCountdown] = useState('')
+  const [correctGuessCount, setCorrectGuessCount] = useState(1903)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -336,6 +337,19 @@ function App() {
     languageOptions.find((option) => option.code === language) || languageOptions[0]
   const copy = currentLanguage.strings
   const guildId = useGuildQuery()
+  const discordClientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1466347748956704831'
+  const discordPermissions = '68608'
+  const discordInviteUrl = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(
+    discordClientId
+  )}&scope=bot%20applications.commands&permissions=${discordPermissions}`
+  const statsEndpoint =
+    import.meta.env.VITE_STATS_URL ||
+    (import.meta.env.VITE_API_URL
+      ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/stats`
+      : '')
+  const formattedCorrectCount = Number.isFinite(correctGuessCount)
+    ? correctGuessCount.toLocaleString()
+    : '—'
   const playLink = (gameKey) => {
     const base = `/play?game=${encodeURIComponent(gameKey)}`
     if (!guildId) return base
@@ -360,6 +374,43 @@ function App() {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (!statsEndpoint) return
+    let cancelled = false
+
+    const loadStats = async () => {
+      try {
+        const url = guildId
+          ? `${statsEndpoint}?guild_id=${encodeURIComponent(guildId)}`
+          : statsEndpoint
+        const res = await fetch(url)
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        const guessedRaw =
+          data?.guessed_correctly ?? data?.correct ?? data?.correct_guesses ?? data?.correctCount
+        const guessedValue = Number(guessedRaw)
+        if (Number.isFinite(guessedValue)) {
+          setCorrectGuessCount(guessedValue)
+          return
+        }
+        const playedValue = Number(data?.played_all)
+        if (Number.isFinite(playedValue)) {
+          setCorrectGuessCount(playedValue)
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    loadStats()
+    const interval = setInterval(loadStats, 60000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [statsEndpoint, guildId])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -435,7 +486,7 @@ function App() {
       <header className="hero">
         <div className="brand">
           <div className="title-row">
-            <div className="title-group">
+            <div className="title-controls">
               <button
                 className="settings-link"
                 type="button"
@@ -446,8 +497,12 @@ function App() {
                   settings
                 </span>
               </button>
-              <h1>Friendle</h1>
+              <span className="live-tracker" aria-live="polite">
+                <span className="tracker-count">{formattedCorrectCount}</span> people have guessed
+                correctly
+              </span>
             </div>
+            <h1>Friendle</h1>
             <div className="lang-row">
               <button
                 className="flag-link"
@@ -494,6 +549,27 @@ function App() {
           </Link>
         ))}
       </main>
+
+      <section className="invite-row" aria-label="Invite the bot">
+        <p className="invite-message">
+          Invite the Friendle Discord bot to your server to get started.
+        </p>
+        <a
+          className="invite-link"
+          href={discordInviteUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Invite the Friendle bot"
+        >
+          <img
+            className="invite-icon"
+            src="https://cdn.simpleicons.org/discord/ffffff"
+            alt=""
+            aria-hidden="true"
+          />
+          Invite the bot
+        </a>
+      </section>
 
       <section className="social-row" aria-label="Social links">
         <a
