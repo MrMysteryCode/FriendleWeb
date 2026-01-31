@@ -856,7 +856,6 @@ function QuoteleGame({
     if (userCorrect && quoteCorrect) {
       setStatus('won')
       setMessage(`Correct! ${solutionName} sent the quote.`)
-      if (onComplete) onComplete()
       return
     }
 
