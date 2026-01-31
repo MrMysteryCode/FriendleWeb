@@ -32,6 +32,8 @@ export default function MedialeCanvas({ url, pixelSize, reveal }) {
   const imgRef = useRef(null)
   const pixelRef = useRef(pixelSize)
   const revealRef = useRef(reveal)
+  const rafRef = useRef(null)
+  const isGifRef = useRef(false)
 
   useEffect(() => {
     pixelRef.current = pixelSize
@@ -44,12 +46,37 @@ export default function MedialeCanvas({ url, pixelSize, reveal }) {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = url
+    const isGif = (() => {
+      try {
+        const clean = url.split('?')[0].toLowerCase()
+        return clean.endsWith('.gif')
+      } catch {
+        return false
+      }
+    })()
+    isGifRef.current = isGif
 
     img.onload = () => {
       imgRef.current = img
       const ctx = canvasRef.current?.getContext('2d')
       if (!ctx) return
-      drawPixelated(ctx, img, pixelRef.current, revealRef.current)
+      if (isGif) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current)
+        const render = () => {
+          const nextCtx = canvasRef.current?.getContext('2d')
+          const nextImg = imgRef.current
+          if (!nextCtx || !nextImg) return
+          drawPixelated(nextCtx, nextImg, pixelRef.current, revealRef.current)
+          rafRef.current = requestAnimationFrame(render)
+        }
+        render()
+      } else {
+        drawPixelated(ctx, img, pixelRef.current, revealRef.current)
+      }
+    }
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [url])
 
@@ -57,7 +84,9 @@ export default function MedialeCanvas({ url, pixelSize, reveal }) {
     const ctx = canvasRef.current?.getContext('2d')
     const img = imgRef.current
     if (!ctx || !img) return
-    drawPixelated(ctx, img, pixelSize, reveal)
+    if (!isGifRef.current) {
+      drawPixelated(ctx, img, pixelSize, reveal)
+    }
   }, [pixelSize, reveal])
 
   if (!url) return null

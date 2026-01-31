@@ -884,6 +884,12 @@ function ClassicGame({
           onChange={(event) => setGuessInput(event.target.value)}
           placeholder="Type a username"
           disabled={isComplete}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              handleSubmit()
+            }
+          }}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
           Guess
@@ -1143,12 +1149,24 @@ function QuoteleGame({
           placeholder="Guess the original quote"
           disabled={isComplete}
           rows={3}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              handleSubmit()
+            }
+          }}
         />
         <input
           value={usernameInput}
           onChange={(event) => setUsernameInput(event.target.value)}
           placeholder="Who sent it? (username)"
           disabled={isComplete}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              handleSubmit()
+            }
+          }}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
           Submit
@@ -1280,6 +1298,12 @@ function StatleGame({
           onChange={(event) => setUsernameInput(event.target.value)}
           placeholder="Guess the member (username)"
           disabled={isComplete}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              handleSubmit()
+            }
+          }}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
           Submit
@@ -1406,6 +1430,12 @@ function MedialeGame({
           onChange={(event) => setGuessInput(event.target.value)}
           placeholder="username"
           disabled={isComplete}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              handleSubmit()
+            }
+          }}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
           Submit

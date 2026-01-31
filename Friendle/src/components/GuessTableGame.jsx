@@ -444,6 +444,12 @@ export default function GuessTableGame({
           onChange={(event) => setGuess(event.target.value)}
           placeholder="Type a username or ID"
           disabled={isComplete}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleGuess();
+            }
+          }}
         />
         <button className="game-submit" type="button" onClick={handleGuess}>
           Guess
