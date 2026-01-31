@@ -49,7 +49,10 @@ function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
   const [resetCountdown, setResetCountdown] = useState('')
-  const [correctGuessCount, setCorrectGuessCount] = useState(1903)
+  const [correctGuessCount, setCorrectGuessCount] = useState(0)
+  const [reduceMotion, setReduceMotion] = useState(false)
+  const [highContrast, setHighContrast] = useState(false)
+  const [largeText, setLargeText] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -368,6 +371,19 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const saved = localStorage.getItem('friendle:a11y')
+    if (!saved) return
+    try {
+      const parsed = JSON.parse(saved)
+      setReduceMotion(Boolean(parsed?.reduceMotion))
+      setHighContrast(Boolean(parsed?.highContrast))
+      setLargeText(Boolean(parsed?.largeText))
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
     setResetCountdown(getNextResetCountdown())
     const interval = setInterval(() => {
       setResetCountdown(getNextResetCountdown())
@@ -441,6 +457,24 @@ function App() {
   }, [language])
 
   useEffect(() => {
+    localStorage.setItem(
+      'friendle:a11y',
+      JSON.stringify({
+        reduceMotion,
+        highContrast,
+        largeText,
+      })
+    )
+  }, [reduceMotion, highContrast, largeText])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('a11y-reduce-motion', reduceMotion)
+    root.classList.toggle('a11y-high-contrast', highContrast)
+    root.classList.toggle('a11y-large-text', largeText)
+  }, [reduceMotion, highContrast, largeText])
+
+  useEffect(() => {
     if (!isModalOpen && !isLangModalOpen && !isAboutModalOpen) return
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -487,6 +521,10 @@ function App() {
         <div className="brand">
           <div className="title-row">
             <div className="title-controls">
+              <span className="live-tracker" aria-live="polite">
+                <span className="tracker-count">{formattedCorrectCount}</span> people have guessed
+                correctly
+              </span>
               <button
                 className="settings-link"
                 type="button"
@@ -497,10 +535,6 @@ function App() {
                   settings
                 </span>
               </button>
-              <span className="live-tracker" aria-live="polite">
-                <span className="tracker-count">{formattedCorrectCount}</span> people have guessed
-                correctly
-              </span>
             </div>
             <h1>Friendle</h1>
             <div className="lang-row">
@@ -659,6 +693,38 @@ function App() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+            <div className="modal-subsection">
+              <h3>Accessibility</h3>
+              <div className="settings-toggles">
+                <label className="toggle-row">
+                  <span>Reduce motion</span>
+                  <input
+                    className="toggle-input"
+                    type="checkbox"
+                    checked={reduceMotion}
+                    onChange={(event) => setReduceMotion(event.target.checked)}
+                  />
+                </label>
+                <label className="toggle-row">
+                  <span>High contrast</span>
+                  <input
+                    className="toggle-input"
+                    type="checkbox"
+                    checked={highContrast}
+                    onChange={(event) => setHighContrast(event.target.checked)}
+                  />
+                </label>
+                <label className="toggle-row">
+                  <span>Large text</span>
+                  <input
+                    className="toggle-input"
+                    type="checkbox"
+                    checked={largeText}
+                    onChange={(event) => setLargeText(event.target.checked)}
+                  />
+                </label>
+              </div>
+            </div>
             <button
               className="modal-action"
               type="button"

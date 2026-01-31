@@ -476,6 +476,12 @@ body {
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guess-table::-webkit-scrollbar {
+  display: none;
 }
 
 .guess-row {
@@ -510,25 +516,21 @@ body {
 
 .guess-cell-correct {
   background: var(--success);
-  border: 1px solid var(--success);
   color: #ffffff;
 }
 
 .guess-cell-partial {
   background: var(--warning);
-  border: 1px solid var(--warning);
   color: #ffffff;
 }
 
 .guess-cell-incorrect {
   background: var(--danger);
-  border: 1px solid var(--danger);
   color: #ffffff;
 }
 
 .guess-cell-unknown {
   background: var(--neutral);
-  border: 1px solid var(--neutral);
   color: #ffffff;
 }
 
@@ -625,6 +627,61 @@ body {
   color: rgba(255, 255, 255, 0.9);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.settings-toggles {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.toggle-input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--title-blue);
+}
+
+.a11y-reduce-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.a11y-high-contrast body {
+  background: #ffffff;
+  color: #0b1324;
+}
+
+.a11y-high-contrast .game-panel,
+.a11y-high-contrast .game-card,
+.a11y-high-contrast .game-route {
+  background: #0b0f1a;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 18px 34px rgba(11, 15, 26, 0.35);
+}
+
+.a11y-high-contrast .game-card p,
+.a11y-high-contrast .game-route-header p,
+.a11y-high-contrast .game-status,
+.a11y-high-contrast .hero-subtitle {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.a11y-large-text body {
+  font-size: 1.05rem;
 }
 
 .invite-row {
@@ -1123,6 +1180,12 @@ body {
   display: grid;
   gap: 6px;
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guess-table::-webkit-scrollbar {
+  display: none;
 }
 
 .guess-row {
@@ -1141,25 +1204,21 @@ body {
 
 .cell-correct {
   background: var(--success);
-  border: 1px solid var(--success);
   color: #ffffff;
 }
 
 .cell-close {
   background: var(--warning);
-  border: 1px solid var(--warning);
   color: #ffffff;
 }
 
 .cell-wrong {
   background: var(--danger);
-  border: 1px solid var(--danger);
   color: #ffffff;
 }
 
 .cell-unknown {
   background: var(--neutral);
-  border: 1px solid var(--neutral);
   color: #ffffff;
 }
 
