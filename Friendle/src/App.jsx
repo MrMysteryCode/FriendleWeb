@@ -57,6 +57,17 @@ function App() {
           title: 'How Friendle Works',
           body:
             "Five daily mini-games powered by anonymized Discord activity from yesterday when available, or the most recent day with activity. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
+          metrics: {
+            title: 'Classic clue meanings',
+            items: [
+              { label: 'Message count', text: 'How many messages the member sent in the source day.' },
+              { label: 'Top word', text: 'Most-used non‑common word in their messages.' },
+              { label: 'Active window', text: 'The time period they were most active (UTC buckets).' },
+              { label: 'Mentions', text: 'How many users they mentioned.' },
+              { label: 'First message', text: 'Time bucket for their first message that day.' },
+              { label: 'Account age', text: 'How old their Discord account is.' },
+            ],
+          },
           bullets: [
             '6 guesses max per game.',
             'Resets at a fixed server time.',
@@ -125,6 +136,17 @@ function App() {
           title: 'How Friendle Works',
           body:
             "Five daily mini-games powered by anonymized Discord activity from yesterday when available, or the most recent day with activity. Everyone sees the same puzzle, with fresh clues after each incorrect guess.",
+          metrics: {
+            title: 'Classic clue meanings',
+            items: [
+              { label: 'Message count', text: 'How many messages the member sent in the source day.' },
+              { label: 'Top word', text: 'Most-used non‑common word in their messages.' },
+              { label: 'Active window', text: 'The time period they were most active (UTC buckets).' },
+              { label: 'Mentions', text: 'How many users they mentioned.' },
+              { label: 'First message', text: 'Time bucket for their first message that day.' },
+              { label: 'Account age', text: 'How old their Discord account is.' },
+            ],
+          },
           bullets: [
             '6 guesses max per game.',
             'Resets at a fixed server time.',
@@ -358,8 +380,8 @@ function App() {
             aria-labelledby="modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="modal-header">
-              <h2 id="modal-title">{copy.how.title}</h2>
+          <div className="modal-header">
+            <h2 id="modal-title">{copy.how.title}</h2>
               <button
                 className="modal-close"
                 type="button"
@@ -370,6 +392,16 @@ function App() {
               </button>
             </div>
             <p>{copy.how.body}</p>
+            <div className="modal-subsection">
+              <h3>{copy.how.metrics.title}</h3>
+              <ul>
+                {copy.how.metrics.items.map((item) => (
+                  <li key={item.label}>
+                    <strong>{item.label}:</strong> {item.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <ul>
               {copy.how.bullets.map((item) => (
                 <li key={item}>{item}</li>

@@ -205,6 +205,12 @@ function normalizeTopWord(value) {
   return text
 }
 
+function firstLetter(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  return text[0].toUpperCase()
+}
+
 function getMetricValue(metrics, key) {
   if (!metrics) return null
   return metrics[key]
@@ -712,6 +718,7 @@ function ClassicGame({
   return (
     <section className="game-panel">
       <h3>Classic</h3>
+      <p className="game-status">Match the activity profile to the right member.</p>
       <div className="metrics-table">
         <div className="metrics-row metrics-header">
           <span>Message count</span>
@@ -747,6 +754,9 @@ function ClassicGame({
       <button className="ghost-button" type="button" onClick={handleReset}>
         Clear guesses
       </button>
+      {!isComplete && attempts >= 3 && solutionName && (
+        <p className="game-status">Hint: Their username starts with {firstLetter(solutionName)}.</p>
+      )}
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
       {isComplete && onComplete && (
         <button className="ghost-button" type="button" onClick={onComplete}>
@@ -896,6 +906,7 @@ function QuoteleGame({
   return (
     <section className="game-panel">
       <h3>Quotele</h3>
+      <p className="game-status">The quote is scrambled. Guess the original quote and who sent it.</p>
       <div className="quote-block">{puzzle?.quote_scrambled || puzzle?.quote}</div>
 
       <div className="guess-input">
@@ -921,7 +932,19 @@ function QuoteleGame({
       <button className="ghost-button" type="button" onClick={handleReset}>
         Clear guesses
       </button>
+      {!isComplete && attempts >= 3 && (puzzle?.meta?.time_bucket || puzzle?.meta?.channel_category) && (
+        <p className="game-status">
+          Hint: {puzzle?.meta?.time_bucket ? `Sent in the ${puzzle.meta.time_bucket.toLowerCase()}` : ''}
+          {puzzle?.meta?.time_bucket && puzzle?.meta?.channel_category ? ' • ' : ''}
+          {puzzle?.meta?.channel_category ? `Channel category: ${puzzle.meta.channel_category}` : ''}
+        </p>
+      )}
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
+      {isComplete && (puzzle?.quote_original || puzzle?.quote) && (
+        <div className="quote-block">
+          <p className="quote-text">{puzzle?.quote_original || puzzle?.quote}</p>
+        </div>
+      )}
       {isComplete && onComplete && (
         <button className="ghost-button" type="button" onClick={onComplete}>
           Continue
@@ -1008,6 +1031,7 @@ function StatleGame({
   return (
     <section className="game-panel">
       <h3>Statle</h3>
+      <p className="game-status">Match the standout stat profile to the correct member.</p>
       <div className="stat-grid">
         {Object.entries(puzzle?.stats || {}).map(([key, value]) => (
           <div className="stat-card" key={key}>
@@ -1033,6 +1057,9 @@ function StatleGame({
       <button className="ghost-button" type="button" onClick={handleReset}>
         Clear guesses
       </button>
+      {!isComplete && attempts >= 3 && solutionName && (
+        <p className="game-status">Hint: Their username starts with {firstLetter(solutionName)}.</p>
+      )}
       {isComplete && <p className="game-status">Answer: {solutionName}</p>}
       {isComplete && onComplete && (
         <button className="ghost-button" type="button" onClick={onComplete}>
@@ -1154,6 +1181,7 @@ function MedialeGame({
   return (
     <section className="game-panel">
       <h3>Mediale</h3>
+      <p className="game-status">Identify who posted the media and include a keyword from the link.</p>
       <MedialeCanvas url={mediaUrl} pixelSize={pixelSize} reveal={reveal} />
 
       <div className="guess-input">
@@ -1172,6 +1200,9 @@ function MedialeGame({
       <button className="ghost-button" type="button" onClick={handleReset}>
         Clear guesses
       </button>
+      {!isComplete && attempts >= 3 && keywords.length > 0 && (
+        <p className="game-status">Hint: One keyword is “{keywords[0]}”.</p>
+      )}
       {isComplete && (
         <div className="game-status">
           <p>Answer: {solutionName}</p>

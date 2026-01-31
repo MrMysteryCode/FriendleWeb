@@ -604,6 +604,20 @@ body {
   color: var(--ink);
 }
 
+.modal-subsection h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.modal-subsection ul {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: rgba(15, 23, 42, 0.7);
+}
+
 .modal-close {
   border: none;
   background: transparent;
