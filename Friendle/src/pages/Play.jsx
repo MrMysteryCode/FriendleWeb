@@ -821,7 +821,7 @@ function ClassicGame({
         <input
           value={guessInput}
           onChange={(event) => setGuessInput(event.target.value)}
-          placeholder="Type a username or ID"
+          placeholder="Type a username"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -1088,7 +1088,7 @@ function QuoteleGame({
         <input
           value={usernameInput}
           onChange={(event) => setUsernameInput(event.target.value)}
-          placeholder="Who sent it? (username or ID)"
+          placeholder="Who sent it? (username)"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
@@ -1219,7 +1219,7 @@ function StatleGame({
         <input
           value={usernameInput}
           onChange={(event) => setUsernameInput(event.target.value)}
-          placeholder="Guess the member (username or ID)"
+          placeholder="Guess the member (username)"
           disabled={isComplete}
         />
         <button type="button" onClick={handleSubmit} disabled={isComplete}>
