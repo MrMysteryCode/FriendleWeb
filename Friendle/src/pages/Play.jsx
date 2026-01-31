@@ -16,9 +16,14 @@ async function postStatsEvent(type) {
   const apiBase = getApiBase()
   if (!apiBase) return
   try {
+    const writeKey = import.meta.env.VITE_STATS_WRITE_KEY || ''
+    const headers = { 'Content-Type': 'application/json' }
+    if (writeKey) {
+      headers.Authorization = `Bearer ${writeKey}`
+    }
     const res = await fetch(`${apiBase}/stats/event`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ type, latest: true }),
     })
     if (res.ok) {
