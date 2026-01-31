@@ -9,7 +9,16 @@ const MIN_PARTIAL_MATCH = 3
 
 function getApiBase() {
   const base = import.meta.env.VITE_API_URL || ''
-  return base ? base.replace(/\/$/, '') : ''
+  if (base) return base.replace(/\/$/, '')
+  const statsUrl = import.meta.env.VITE_STATS_URL || ''
+  if (!statsUrl) return ''
+  try {
+    const parsed = new URL(statsUrl, window.location.origin)
+    parsed.pathname = parsed.pathname.replace(/\/stats\/?$/, '')
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return ''
+  }
 }
 
 async function postStatsEvent(type) {
@@ -477,12 +486,18 @@ function GuessHistory({ guesses }) {
 /**
  * Render a collapsible pool of possible guesses.
  */
-function GuessPool({ names, guessPoolUsernames, variant = 'dark' }) {
+function GuessPool({ names, guessPoolUsernames, guessPoolNames, variant = 'dark' }) {
   const pool = useMemo(() => {
+    if (Array.isArray(guessPoolNames) && guessPoolNames.length) {
+      const unique = Array.from(
+        new Set(guessPoolNames.map((name) => String(name || '').trim()).filter(Boolean))
+      )
+      return unique.sort((a, b) => a.localeCompare(b))
+    }
     const list = buildGuessPool(names, guessPoolUsernames)
     const unique = Array.from(new Set(list))
     return unique.sort((a, b) => a.localeCompare(b))
-  }, [names, guessPoolUsernames])
+  }, [names, guessPoolUsernames, guessPoolNames])
 
   if (!pool.length) return null
 
@@ -503,12 +518,17 @@ function GuessPool({ names, guessPoolUsernames, variant = 'dark' }) {
 /**
  * Render a lightweight empty state with optional continue action.
  */
-function EmptyGame({ title, message, onContinue, names, guessPoolUsernames }) {
+function EmptyGame({ title, message, onContinue, names, guessPoolUsernames, guessPoolNames }) {
   return (
     <section className="game-panel game-panel-empty">
       <h3>{title}</h3>
       <p className="game-status">{message}</p>
-      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} variant="light" />
+      <GuessPool
+        names={names}
+        guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
+        variant="light"
+      />
       {onContinue && (
         <button className="ghost-button continue-button" type="button" onClick={onContinue}>
           Continue
@@ -611,6 +631,10 @@ export default function Play() {
     () => buildAllowedUsernames(allowedFromPayload, names, { strict: true }),
     [allowedFromPayload, names]
   )
+  const guessPoolNames = useMemo(() => {
+    if (!Array.isArray(allowedFromPayload) || allowedFromPayload.length === 0) return []
+    return allowedFromPayload.map((name) => String(name || '').trim()).filter(Boolean)
+  }, [allowedFromPayload])
   const nameLookup = useMemo(() => buildNameLookup(names), [names])
   const dateLabel = data?.date || data?.metadata?.date || ''
   const dateNote = useMemo(() => getPuzzleDateNote(dateLabel), [dateLabel])
@@ -725,6 +749,7 @@ export default function Play() {
               metrics={metrics}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
+              guessPoolNames={guessPoolNames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -742,6 +767,7 @@ export default function Play() {
               puzzle={puzzles.quotele}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
+              guessPoolNames={guessPoolNames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -759,6 +785,7 @@ export default function Play() {
               puzzle={puzzles.mediale}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
+              guessPoolNames={guessPoolNames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -776,6 +803,7 @@ export default function Play() {
               puzzle={puzzles.statle}
               allowedUsernames={allowedUsernames}
               guessPoolUsernames={optedInUsernames}
+              guessPoolNames={guessPoolNames}
               guildId={guildId}
               date={dateLabel}
               resetSeed={resetSeed}
@@ -802,6 +830,7 @@ function ClassicGame({
   metrics,
   allowedUsernames,
   guessPoolUsernames,
+  guessPoolNames,
   guildId,
   date,
   resetSeed,
@@ -889,6 +918,7 @@ function ClassicGame({
         onContinue={onComplete}
         names={names}
         guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
       />
     )
   }
@@ -1031,7 +1061,11 @@ function ClassicGame({
           label: row.name,
         }))}
       />
-      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
+      <GuessPool
+        names={names}
+        guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
+      />
     </section>
   )
 }
@@ -1044,6 +1078,7 @@ function QuoteleGame({
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
+  guessPoolNames,
   guildId,
   date,
   resetSeed,
@@ -1178,6 +1213,7 @@ function QuoteleGame({
         onContinue={onComplete}
         names={names}
         guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
       />
     )
   }
@@ -1244,7 +1280,11 @@ function QuoteleGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
+      <GuessPool
+        names={names}
+        guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
+      />
     </section>
   )
 }
@@ -1257,6 +1297,7 @@ function StatleGame({
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
+  guessPoolNames,
   guildId,
   date,
   resetSeed,
@@ -1329,6 +1370,7 @@ function StatleGame({
         onContinue={onComplete}
         names={names}
         guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
       />
     )
   }
@@ -1378,7 +1420,11 @@ function StatleGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
+      <GuessPool
+        names={names}
+        guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
+      />
     </section>
   )
 }
@@ -1391,6 +1437,7 @@ function MedialeGame({
   puzzle,
   allowedUsernames,
   guessPoolUsernames,
+  guessPoolNames,
   guildId,
   date,
   resetSeed,
@@ -1481,6 +1528,7 @@ function MedialeGame({
         onContinue={onComplete}
         names={names}
         guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
       />
     )
   }
@@ -1522,7 +1570,11 @@ function MedialeGame({
       )}
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
-      <GuessPool names={names} guessPoolUsernames={guessPoolUsernames} />
+      <GuessPool
+        names={names}
+        guessPoolUsernames={guessPoolUsernames}
+        guessPoolNames={guessPoolNames}
+      />
     </section>
   )
 }
