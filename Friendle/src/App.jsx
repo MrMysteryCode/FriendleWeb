@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import friendleIcon from './assets/friendle.png'
 import './App.css'
@@ -391,39 +391,44 @@ function App() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
+  const loadStats = useCallback(async () => {
     if (!statsEndpoint) return
-    let cancelled = false
-
-    const loadStats = async () => {
-      try {
-        const res = await fetch(statsEndpoint)
-        if (!res.ok) return
-        const data = await res.json()
-        if (cancelled) return
-        const guessedRaw =
-          data?.guessed_correctly ?? data?.correct ?? data?.correct_guesses ?? data?.correctCount
-        const guessedValue = Number(guessedRaw)
-        if (Number.isFinite(guessedValue)) {
-          setCorrectGuessCount(guessedValue)
-          return
-        }
-        const playedValue = Number(data?.played_all)
-        if (Number.isFinite(playedValue)) {
-          setCorrectGuessCount(playedValue)
-        }
-      } catch {
-        // ignore
+    try {
+      const res = await fetch(statsEndpoint)
+      if (!res.ok) return
+      const data = await res.json()
+      const guessedRaw =
+        data?.guessed_correctly ?? data?.correct ?? data?.correct_guesses ?? data?.correctCount
+      const guessedValue = Number(guessedRaw)
+      if (Number.isFinite(guessedValue)) {
+        setCorrectGuessCount(guessedValue)
+        return
       }
-    }
-
-    loadStats()
-    const interval = setInterval(loadStats, 60000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
+      const playedValue = Number(data?.played_all)
+      if (Number.isFinite(playedValue)) {
+        setCorrectGuessCount(playedValue)
+      }
+    } catch {
+      // ignore
     }
   }, [statsEndpoint])
+
+  useEffect(() => {
+    if (!statsEndpoint) return
+    loadStats()
+    const interval = setInterval(loadStats, 60000)
+    return () => clearInterval(interval)
+  }, [statsEndpoint, loadStats])
+
+  useEffect(() => {
+    if (!statsEndpoint) return
+    const handleStatsUpdated = () => {
+      loadStats()
+      setTimeout(loadStats, 3000)
+    }
+    window.addEventListener('friendle:stats-updated', handleStatsUpdated)
+    return () => window.removeEventListener('friendle:stats-updated', handleStatsUpdated)
+  }, [statsEndpoint, loadStats])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)

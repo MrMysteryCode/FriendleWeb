@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchLatestPuzzles } from '../api/friendleApi'
 import MedialeCanvas from '../components/MedialeCanvas'
@@ -16,11 +16,14 @@ async function postStatsEvent(type) {
   const apiBase = getApiBase()
   if (!apiBase) return
   try {
-    await fetch(`${apiBase}/stats/event`, {
+    const res = await fetch(`${apiBase}/stats/event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, latest: true }),
     })
+    if (res.ok) {
+      window.dispatchEvent(new CustomEvent('friendle:stats-updated'))
+    }
   } catch {
     // ignore
   }
@@ -30,10 +33,28 @@ function storageKey(guildId, date, game) {
   return `friendle:${guildId}:${date}:${game}`
 }
 
+function clearStoredGameState(guildId, date) {
+  if (!guildId || !date) return
+  ;['classic', 'quotele', 'mediale', 'statle'].forEach((game) => {
+    localStorage.removeItem(storageKey(guildId, date, game))
+  })
+}
+
+function clearStoredGameStateForGuild(guildId) {
+  if (!guildId) return
+  const prefix = `friendle:${guildId}:`
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith(prefix)) {
+      localStorage.removeItem(key)
+    }
+  }
+}
+
 /**
  * Persist per-game state (guesses + status) in localStorage for a guild/date.
  */
-function useStoredGameState(guildId, date, game) {
+function useStoredGameState(guildId, date, game, resetSeed = 0) {
   const key = guildId && date ? storageKey(guildId, date, game) : null
   const [state, setState] = useState({ guesses: [], status: null })
 
@@ -52,7 +73,7 @@ function useStoredGameState(guildId, date, game) {
       }
     }
     setState({ guesses: [], status: null })
-  }, [key])
+  }, [key, resetSeed])
 
   useEffect(() => {
     if (!key) return
@@ -503,6 +524,9 @@ export default function Play() {
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState(initialGame)
+  const [resetSeed, setResetSeed] = useState(0)
+  const lastResetKey = useRef('')
+  const lastGuildReset = useRef('')
 
   useEffect(() => {
     if (!guildId) return
@@ -528,6 +552,13 @@ export default function Play() {
   useEffect(() => {
     setActiveTab(initialGame)
   }, [initialGame])
+
+  useEffect(() => {
+    if (!guildId || lastGuildReset.current === guildId) return
+    lastGuildReset.current = guildId
+    clearStoredGameStateForGuild(guildId)
+    setResetSeed((prev) => prev + 1)
+  }, [guildId])
 
   useEffect(() => {
     if (data?.puzzles) {
@@ -613,6 +644,22 @@ export default function Play() {
   }
 
   useEffect(() => {
+    if (status !== 'ready' || !guildId || !dateLabel) return
+    const resetKey = `${guildId}:${dateLabel}`
+    if (lastResetKey.current === resetKey) return
+    lastResetKey.current = resetKey
+    clearStoredGameState(guildId, dateLabel)
+    setResetSeed((prev) => prev + 1)
+  }, [status, guildId, dateLabel])
+
+  useEffect(() => {
+    if (!guildId || !dateLabel) return
+    const handleUnload = () => clearStoredGameState(guildId, dateLabel)
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
+  }, [guildId, dateLabel])
+
+  useEffect(() => {
     if (status !== 'ready') return
     const viewKey = dateLabel ? `friendle:stats:view:${dateLabel}` : 'friendle:stats:view'
     if (sessionStorage.getItem(viewKey)) return
@@ -660,6 +707,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
+              resetSeed={resetSeed}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
@@ -673,6 +721,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
+              resetSeed={resetSeed}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
@@ -686,6 +735,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
+              resetSeed={resetSeed}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
@@ -699,6 +749,7 @@ export default function Play() {
               allowedUsernames={allowedUsernames}
               guildId={guildId}
               date={dateLabel}
+              resetSeed={resetSeed}
               resolveGuess={resolveGuess}
               resolveDisplayName={resolveDisplayName}
               names={names}
@@ -721,6 +772,7 @@ function ClassicGame({
   allowedUsernames,
   guildId,
   date,
+  resetSeed,
   resolveGuess,
   resolveDisplayName,
   names,
@@ -729,11 +781,17 @@ function ClassicGame({
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
-    'classic'
+    'classic',
+    resetSeed
   )
+
+  useEffect(() => {
+    setGuessInput('')
+    setMessage('')
+  }, [resetSeed])
 
   const solutionMetrics = puzzle?.solution_metrics || metrics?.[puzzle?.solution_user_id] || {}
   const solutionId = puzzle?.solution_user_id
@@ -783,12 +841,6 @@ function ClassicGame({
     }
 
     setMessage('Keep going!')
-  }
-
-  const handleReset = () => {
-    resetGame()
-    setGuessInput('')
-    setMessage('')
   }
 
   if (!puzzle) {
@@ -850,9 +902,6 @@ function ClassicGame({
           Continue
         </button>
       )}
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
 
       <div className="guess-table">
         <div className="guess-row metrics-header">
@@ -951,6 +1000,7 @@ function QuoteleGame({
   allowedUsernames,
   guildId,
   date,
+  resetSeed,
   resolveGuess,
   resolveDisplayName,
   names,
@@ -960,11 +1010,18 @@ function QuoteleGame({
   const [quoteInput, setQuoteInput] = useState('')
   const [usernameInput, setUsernameInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
-    'quotele'
+    'quotele',
+    resetSeed
   )
+
+  useEffect(() => {
+    setQuoteInput('')
+    setUsernameInput('')
+    setMessage('')
+  }, [resetSeed])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1061,13 +1118,6 @@ function QuoteleGame({
     }
   }
 
-  const handleReset = () => {
-    resetGame()
-    setQuoteInput('')
-    setUsernameInput('')
-    setMessage('')
-  }
-
   if (!puzzle) {
     return (
       <EmptyGame
@@ -1128,9 +1178,6 @@ function QuoteleGame({
           Continue
         </button>
       )}
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />
@@ -1146,6 +1193,7 @@ function StatleGame({
   allowedUsernames,
   guildId,
   date,
+  resetSeed,
   resolveGuess,
   resolveDisplayName,
   names,
@@ -1154,11 +1202,17 @@ function StatleGame({
 }) {
   const [usernameInput, setUsernameInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
-    'statle'
+    'statle',
+    resetSeed
   )
+
+  useEffect(() => {
+    setUsernameInput('')
+    setMessage('')
+  }, [resetSeed])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1193,12 +1247,6 @@ function StatleGame({
     }
 
     setMessage('Try another guess.')
-  }
-
-  const handleReset = () => {
-    resetGame()
-    setUsernameInput('')
-    setMessage('')
   }
 
   if (!puzzle) {
@@ -1250,9 +1298,6 @@ function StatleGame({
           Continue
         </button>
       )}
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />
@@ -1268,6 +1313,7 @@ function MedialeGame({
   allowedUsernames,
   guildId,
   date,
+  resetSeed,
   resolveGuess,
   resolveDisplayName,
   names,
@@ -1276,11 +1322,17 @@ function MedialeGame({
 }) {
   const [guessInput, setGuessInput] = useState('')
   const [message, setMessage] = useState('')
-  const { state, addGuess, setStatus, resetGame, attempts, isComplete } = useStoredGameState(
+  const { state, addGuess, setStatus, attempts, isComplete } = useStoredGameState(
     guildId,
     date,
-    'mediale'
+    'mediale',
+    resetSeed
   )
+
+  useEffect(() => {
+    setGuessInput('')
+    setMessage('')
+  }, [resetSeed])
 
   const guesses = state.guesses
   const solutionId = puzzle?.solution_user_id
@@ -1330,12 +1382,6 @@ function MedialeGame({
     setMessage('Not quite. The image is getting clearer.')
   }
 
-  const handleReset = () => {
-    resetGame()
-    setGuessInput('')
-    setMessage('')
-  }
-
   if (!puzzle) {
     return (
       <EmptyGame
@@ -1377,9 +1423,6 @@ function MedialeGame({
           Continue
         </button>
       )}
-      <button className="ghost-button" type="button" onClick={handleReset}>
-        Clear guesses
-      </button>
 
       <GuessHistory guesses={guesses.map((guess) => ({ label: guess.label }))} />
       <GuessPool names={names} allowedUsernames={allowedUsernames} />
