@@ -19,6 +19,7 @@ function App() {
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [language, setLanguage] = useState('en-US')
+  const [resetCountdown, setResetCountdown] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -198,6 +199,33 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const computeCountdown = () => {
+      const now = new Date()
+      const nextReset = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        1, 0, 0
+      ))
+      if (now >= nextReset) {
+        nextReset.setUTCDate(nextReset.getUTCDate() + 1)
+      }
+      const diffMs = nextReset.getTime() - now.getTime()
+      const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
+      const hours = Math.floor(totalSeconds / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} UTC`
+    }
+
+    setResetCountdown(computeCountdown())
+    const interval = setInterval(() => {
+      setResetCountdown(computeCountdown())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     const guild = searchParams.get('guild')
     if (!guild) return
@@ -277,6 +305,9 @@ function App() {
               </span>
             </button>
             <h1>Friendle</h1>
+            {resetCountdown && (
+              <span className="date-badge">Resets in {resetCountdown}</span>
+            )}
             <button
               className="flag-link"
               type="button"
